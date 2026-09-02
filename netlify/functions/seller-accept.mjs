@@ -45,6 +45,11 @@ export const createAcceptHandler = (getRepository, options = {}) => async reques
     const result = await repository.acceptOrder(
       input.order_id, input.quantity, input.idempotency_key, seller.tokenHash, now
     );
+    if (result?.error === 'APPROVAL_REQUIRED') return json({
+      ok: false,
+      error: { code: result.error, message: errors.APPROVAL_REQUIRED[1] },
+      pending_action: result.pendingAction
+    }, errors.APPROVAL_REQUIRED[0]);
     if (result?.error) return error(result.error, errors[result.error]?.[1] ?? errors.UNAVAILABLE[1], errors[result.error]?.[0] ?? 503);
     return json({ ok: true, replayed: result.replayed, receipt: result.receipt }, result.replayed ? 200 : 201);
   } catch (caught) {

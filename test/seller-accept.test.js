@@ -75,10 +75,15 @@ test('rejects unauthorized, cross-origin, malformed, and non-permitted acceptanc
     { ...input, idempotency_key: 'short' }
   ]) assert.equal((await handler(request(malformed))).status, 400);
 
-  repository.acceptOrder = async () => ({ error: 'APPROVAL_REQUIRED' });
+  repository.acceptOrder = async () => ({
+    error: 'APPROVAL_REQUIRED',
+    pendingAction: { action_id: 'pending-1', order_id: 'order-1', quantity: 6, state: 'pending', version: 1 }
+  });
   const pending = await handler(request({ ...input, quantity: 6 }));
   assert.equal(pending.status, 409);
-  assert.equal((await pending.json()).error.code, 'APPROVAL_REQUIRED');
+  const pendingResult = await pending.json();
+  assert.equal(pendingResult.error.code, 'APPROVAL_REQUIRED');
+  assert.equal(pendingResult.pending_action.action_id, 'pending-1');
 
   repository.acceptOrder = async () => ({ error: 'CONFLICT' });
   const conflict = await handler(request());
@@ -127,12 +132,21 @@ test('accept_order calls the seller acceptance endpoint in browser context', asy
     return new Response(JSON.stringify({ ok: true, replayed: false, receipt: { receipt_id: 'receipt_demo' } }), { status: 201 });
   };
   try {
-    const result = await app.SELLER_TOOLS.find(tool => tool.name === 'accept_order').execute(input);
+    const tool = app.SELLER_TOOLS.find(candidate => candidate.name === 'accept_order');
+    const result = await tool.execute(input);
     assert.equal(result.receipt.receipt_id, 'receipt_demo');
     assert.deepEqual(call, {
       url: '/api/seller/accept',
       options: { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(input) }
     });
+    globalThis.fetch = async () => new Response(JSON.stringify({
+      ok: false,
+      error: { code: 'APPROVAL_REQUIRED', message: 'Seller approval required.' },
+      pending_action: { action_id: 'pending-1', order_id: 'order_demo', quantity: 6, state: 'pending', version: 1 }
+    }), { status: 409 });
+    const pending = await tool.execute({ ...input, quantity: 6 });
+    assert.equal(pending.error.code, 'APPROVAL_REQUIRED');
+    assert.equal(pending.pending_action.action_id, 'pending-1');
   } finally {
     globalThis.document = originalDocument;
     globalThis.fetch = originalFetch;

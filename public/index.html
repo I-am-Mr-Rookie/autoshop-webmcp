@@ -44,6 +44,8 @@
     .seller-login button { margin-top: 20px; }
     .mandate-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
     .mandate-version { color: #526474; font: .78rem/1.5 "DM Mono", Consolas, monospace; }
+    .approval-warning { color: #7c2d12; line-height: 1.55; }
+    .approval-confirm { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; margin: 20px 0; line-height: 1.5; }
     #seller-logout { width: auto; margin: 24px; background: transparent; color: #047857; }
     [hidden] { display: none !important; }
     :focus-visible { outline: 3px solid #1e40af; outline-offset: 3px; }
@@ -88,6 +90,16 @@
             <p class="mandate-version">Current version <output id="mandate-version">—</output></p>
             <button type="submit">Save mandate</button>
             <output class="confirmation-status" id="mandate-status" aria-live="polite" aria-atomic="true"></output>
+          </fieldset>
+        </form>
+        <form id="seller-approval" aria-busy="false">
+          <fieldset id="seller-approval-fields" disabled>
+            <legend>Exceptional action approval</legend>
+            <p class="approval-warning">This authorizes one pending action outside the current mandate. A successful commit changes synthetic stock and creates an immutable receipt.</p>
+            <label class="field">Pending action ID<input name="action_id" type="text" maxlength="64" pattern="[A-Za-z0-9_-]+" required></label>
+            <label class="approval-confirm"><input name="confirm" type="checkbox" value="APPROVE" required><span>I reviewed this action and approve this one exceptional commit.</span></label>
+            <button type="submit">Approve this exceptional action</button>
+            <output class="confirmation-status" id="seller-approval-status" aria-live="polite" aria-atomic="true">No exceptional action approved.</output>
           </fieldset>
         </form>
         <button id="seller-logout" type="button">Log out</button>

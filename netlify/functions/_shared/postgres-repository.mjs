@@ -411,6 +411,240 @@ export const createPostgresRepository = db => ({
     }
   },
 
+  async approveAction(actionId, approvalTokenHash, expiresAt, sellerTokenHash, now) {
+    const client = await db.pool.connect();
+    try {
+      await client.query('BEGIN');
+      // ponytail: the single demo seller row serializes approvals; use advisory locks if seller throughput grows.
+      const { rows: [seller] } = await client.query(`
+        SELECT id FROM seller_users
+        WHERE session_token_hash = $1 AND session_expires_at > $2 AND status = 'active'
+        FOR UPDATE
+      `, [sellerTokenHash, now]);
+      if (!seller) {
+        await client.query('ROLLBACK');
+        return { error: 'FORBIDDEN' };
+      }
+
+      const { rows: [action] } = await client.query(`
+        SELECT pa.id AS action_id, pa.order_id, pa.mandate_version, pa.quantity, pa.snapshot,
+          pa.state, o.items, o.total_cents, o.discount_percent,
+          o.status AS order_status, o.version AS order_version
+        FROM pending_actions pa JOIN orders o ON o.id = pa.order_id
+        WHERE pa.id = $1 FOR UPDATE OF pa, o
+      `, [actionId]);
+      if (!action) {
+        await client.query('ROLLBACK');
+        return { error: 'NOT_FOUND' };
+      }
+      if (!['pending', 'approved'].includes(action.state) || action.order_status !== 'pending') {
+        await client.query('ROLLBACK');
+        return { error: 'STALE' };
+      }
+
+      const { rows: [mandateRow] } = await client.query(`
+        SELECT max_items, max_total_cents, max_discount_percent, min_remaining_stock, state, version
+        FROM mandates WHERE state = 'active' ORDER BY version DESC LIMIT 1 FOR UPDATE
+      `);
+      const quantities = new Map();
+      for (const item of action.items) quantities.set(item.product_id, (quantities.get(item.product_id) ?? 0) + item.quantity);
+      const productIds = [...quantities.keys()].sort();
+      const { rows: products } = await client.query(`
+        SELECT id, stock, version FROM products WHERE id = ANY($1::text[]) ORDER BY id FOR UPDATE
+      `, [productIds]);
+      const mandate = mandateResult(mandateRow);
+      const currentSnapshot = mandate
+        && action.mandate_version === mandate.mandate_version
+        && action.snapshot.mandate_version === mandate.mandate_version
+        && action.snapshot.order_version === action.order_version
+        && JSON.stringify(action.snapshot.items) === JSON.stringify(action.items)
+        && JSON.stringify(action.snapshot.products) === JSON.stringify(products)
+        && [...quantities.values()].reduce((total, value) => total + value, 0) === action.quantity
+        && !isOrderEligible({ ...action, quantity: action.quantity }, products, mandate);
+      if (!currentSnapshot) {
+        await client.query('ROLLBACK');
+        return { error: 'STALE' };
+      }
+
+      const { rows: [active] } = await client.query(`
+        SELECT id, expires_at FROM approval_tokens
+        WHERE action_id = $1 AND state = 'active' FOR UPDATE
+      `, [actionId]);
+      if (active && new Date(active.expires_at) > now) {
+        await client.query('ROLLBACK');
+        return { error: 'CONFLICT' };
+      }
+      if (active) await client.query(
+        "UPDATE approval_tokens SET state = 'expired', version = version + 1 WHERE id = $1", [active.id]
+      );
+      if (action.state === 'pending') await client.query(
+        "UPDATE pending_actions SET state = 'approved', version = version + 1 WHERE id = $1", [actionId]
+      );
+      await client.query(`
+        INSERT INTO approval_tokens (id, action_id, token_hash, expires_at, state, version)
+        VALUES ($1, $2, $3, $4, 'active', 1)
+      `, [`approval-${randomUUID()}`, actionId, approvalTokenHash, expiresAt]);
+      await client.query('COMMIT');
+      return {
+        approval: {
+          action_id: action.action_id,
+          order_id: action.order_id,
+          quantity: action.quantity,
+          state: 'approved',
+          expires_at: expiresAt.toISOString()
+        }
+      };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      if (error?.code === '23505') return { error: 'CONFLICT' };
+      throw error;
+    } finally {
+      client.release();
+    }
+  },
+
+  async commitAction(actionId, approvalTokenHash, idempotencyKey, sellerTokenHash, now) {
+    const client = await db.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows: [seller] } = await client.query(`
+        SELECT id FROM seller_users
+        WHERE session_token_hash = $1 AND session_expires_at > $2 AND status = 'active'
+        FOR UPDATE
+      `, [sellerTokenHash, now]);
+      if (!seller) {
+        await client.query('ROLLBACK');
+        return { error: 'FORBIDDEN' };
+      }
+
+      const { rows: [replay] } = await client.query(`
+        SELECT pa.id AS action_id, at.token_hash, r.body, r.issued_at, r.version
+        FROM orders o
+        JOIN pending_actions pa ON pa.order_id = o.id AND pa.state = 'committed'
+        JOIN approval_tokens at ON at.action_id = pa.id AND at.state = 'consumed'
+        JOIN receipts r ON r.order_id = o.id
+        WHERE o.idempotency_key = $1
+      `, [idempotencyKey]);
+      if (replay) {
+        if (replay.action_id !== actionId || replay.token_hash !== approvalTokenHash) {
+          await client.query('ROLLBACK');
+          return { error: 'CONFLICT' };
+        }
+        await client.query('COMMIT');
+        return { receipt: receiptResult(replay), replayed: true };
+      }
+
+      const { rows: [action] } = await client.query(`
+        SELECT pa.id AS action_id, pa.order_id, pa.mandate_version, pa.quantity, pa.snapshot,
+          pa.state, o.items, o.total_cents, o.discount_percent,
+          o.status AS order_status, o.version AS order_version
+        FROM pending_actions pa JOIN orders o ON o.id = pa.order_id
+        WHERE pa.id = $1 FOR UPDATE OF pa, o
+      `, [actionId]);
+      if (!action) {
+        await client.query('ROLLBACK');
+        return { error: 'NOT_FOUND' };
+      }
+      if (action.state !== 'approved' || action.order_status !== 'pending') {
+        await client.query('ROLLBACK');
+        return { error: 'STALE' };
+      }
+
+      const { rows: [approval] } = await client.query(`
+        SELECT id, expires_at, state FROM approval_tokens
+        WHERE action_id = $1 AND token_hash = $2 FOR UPDATE
+      `, [actionId, approvalTokenHash]);
+      if (!approval) {
+        await client.query('ROLLBACK');
+        return { error: 'FORBIDDEN' };
+      }
+      if (approval.state !== 'active') {
+        await client.query('ROLLBACK');
+        return { error: 'EXPIRED_APPROVAL' };
+      }
+      if (new Date(approval.expires_at) <= now) {
+        await client.query("UPDATE approval_tokens SET state = 'expired', version = version + 1 WHERE id = $1", [approval.id]);
+        await client.query('COMMIT');
+        return { error: 'EXPIRED_APPROVAL' };
+      }
+
+      const { rows: [mandateRow] } = await client.query(`
+        SELECT max_items, max_total_cents, max_discount_percent, min_remaining_stock, state, version
+        FROM mandates WHERE state = 'active' ORDER BY version DESC LIMIT 1 FOR UPDATE
+      `);
+      const quantities = new Map();
+      for (const item of action.items) quantities.set(item.product_id, (quantities.get(item.product_id) ?? 0) + item.quantity);
+      const productIds = [...quantities.keys()].sort();
+      const { rows: products } = await client.query(`
+        SELECT id, stock, version FROM products WHERE id = ANY($1::text[]) ORDER BY id FOR UPDATE
+      `, [productIds]);
+      const mandate = mandateResult(mandateRow);
+      const currentSnapshot = mandate
+        && action.mandate_version === mandate.mandate_version
+        && action.snapshot.mandate_version === mandate.mandate_version
+        && action.snapshot.order_version === action.order_version
+        && JSON.stringify(action.snapshot.items) === JSON.stringify(action.items)
+        && JSON.stringify(action.snapshot.products) === JSON.stringify(products)
+        && [...quantities.values()].reduce((total, value) => total + value, 0) === action.quantity
+        && products.length === quantities.size
+        && [...quantities].every(([productId, requested]) => products.find(product => product.id === productId)?.stock >= requested);
+      if (!currentSnapshot) {
+        await client.query('ROLLBACK');
+        return { error: 'STALE' };
+      }
+
+      const accepted = await client.query(`
+        UPDATE orders SET status = 'accepted', idempotency_key = $2, version = version + 1
+        WHERE id = $1 AND status = 'pending'
+      `, [action.order_id, idempotencyKey]);
+      const committed = await client.query(`
+        UPDATE pending_actions SET state = 'committed', version = version + 1
+        WHERE id = $1 AND state = 'approved'
+      `, [actionId]);
+      const consumed = await client.query(`
+        UPDATE approval_tokens SET state = 'consumed', version = version + 1
+        WHERE id = $1 AND state = 'active'
+      `, [approval.id]);
+      if (accepted.rowCount !== 1 || committed.rowCount !== 1 || consumed.rowCount !== 1) {
+        await client.query('ROLLBACK');
+        return { error: 'STALE' };
+      }
+      for (const [productId, requested] of quantities) {
+        const product = products.find(candidate => candidate.id === productId);
+        const changed = await client.query(`
+          UPDATE products SET stock = stock - $2, version = version + 1
+          WHERE id = $1 AND version = $3 AND stock >= $2
+        `, [productId, requested, product.version]);
+        if (changed.rowCount !== 1) {
+          await client.query('ROLLBACK');
+          return { error: 'STALE' };
+        }
+      }
+      const receiptId = `receipt-${randomUUID()}`;
+      const body = {
+        receipt_id: receiptId,
+        order_id: action.order_id,
+        action_id: actionId,
+        items: action.items,
+        total_cents: action.total_cents,
+        discount_percent: action.discount_percent
+      };
+      const { rows: [receipt] } = await client.query(`
+        INSERT INTO receipts (id, order_id, body, issued_at, version)
+        VALUES ($1, $2, $3::jsonb, $4, 1)
+        RETURNING body, issued_at, version
+      `, [receiptId, action.order_id, JSON.stringify(body), now]);
+      await client.query('COMMIT');
+      return { receipt: receiptResult(receipt), replayed: false };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      if (error?.code === '23505') return { error: 'CONFLICT' };
+      throw error;
+    } finally {
+      client.release();
+    }
+  },
+
   async acceptOrder(orderId, quantity, idempotencyKey, tokenHash, now) {
     const client = await db.pool.connect();
     try {
