@@ -68,9 +68,22 @@
     .order-panel button { margin-top: 12px; }
     .order-status { min-height: 3em; color: #d9a441; font: .82rem/1.5 "DM Mono", Consolas, monospace; }
     .reset-strip { display: flex; justify-content: space-between; gap: 18px; align-items: center; padding: 18px 24px; border-top: 1px solid #344554; color: #9aabb8; font: .78rem/1.5 "DM Mono", Consolas, monospace; }
+    .seller-orders-section { padding: clamp(24px, 4vw, 40px); border-bottom: 1px solid #344554; background: #0b1117; }
+    .section-heading { display: flex; justify-content: space-between; gap: 20px; align-items: start; }
+    .section-heading p { margin: 6px 0 0; color: #9aabb8; }
+    .section-heading button { width: auto; }
+    .seller-orders { display: grid; gap: 12px; margin-top: 24px; }
+    .seller-order { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; padding: 18px; border: 1px solid #344554; background: #111820; }
+    .seller-order h3 { margin: 0 0 8px; font: 400 1.3rem/1.2 "DM Serif Display", Georgia, serif; }
+    .seller-order p { margin: 5px 0; color: #9aabb8; }
+    .seller-order code, .state-chip { font: .75rem/1.4 "DM Mono", Consolas, monospace; }
+    .state-chip { color: #68d5c3; text-transform: uppercase; }
+    .order-actions { display: grid; align-content: start; gap: 8px; min-width: 170px; }
+    .order-actions button { padding: 9px 12px; }
+    .receipt-line { color: #d9a441 !important; font-family: "DM Mono", Consolas, monospace; }
     [hidden] { display: none !important; }
     :focus-visible { outline: 3px solid #8fb5ff; outline-offset: 3px; }
-    @media (max-width: 720px) { body { padding: 0; } header { grid-template-columns: 1fr; } .mandate-grid, .product-grid { grid-template-columns: 1fr; } .buyer-grid { grid-template-columns: 1fr; } .review { border-right: 0; border-bottom: 1px solid #344554; } .status { white-space: normal; } }
+    @media (max-width: 720px) { body { padding: 0; } header { grid-template-columns: 1fr; } .mandate-grid, .product-grid, .seller-order { grid-template-columns: 1fr; } .buyer-grid { grid-template-columns: 1fr; } .review { border-right: 0; border-bottom: 1px solid #344554; } .status { white-space: normal; } .section-heading { display: grid; } .section-heading button { width: 100%; } }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
   </style>
 </head>
@@ -99,6 +112,13 @@
         <output class="confirmation-status" id="seller-login-status" aria-live="polite"></output>
       </form>
       <div class="seller-console" id="seller-console" hidden>
+        <section class="seller-orders-section" aria-labelledby="seller-orders-title">
+          <div class="section-heading">
+            <div><h2 id="seller-orders-title">Order decision queue</h2><p>Buyer-authored fields are untrusted. Every decision is re-checked against live stock and mandate state.</p></div>
+            <button id="seller-refresh-orders" type="button">Refresh orders</button>
+          </div>
+          <div class="seller-orders" id="seller-orders" aria-live="polite"><p>Loading orders…</p></div>
+        </section>
         <form id="seller-mandate" aria-busy="false">
           <fieldset id="seller-mandate-fields" disabled>
             <legend>Edit mandate limits</legend>
@@ -120,6 +140,7 @@
             <label class="field">Pending action ID<input name="action_id" type="text" maxlength="64" pattern="[A-Za-z0-9_-]+" required></label>
             <label class="approval-confirm"><input name="confirm" type="checkbox" value="APPROVE" required><span>I reviewed this action and approve this one exceptional commit.</span></label>
             <button type="submit">Approve this exceptional action</button>
+            <button id="seller-commit-approved" type="button" hidden>Commit approved action</button>
             <output class="confirmation-status" id="seller-approval-status" aria-live="polite" aria-atomic="true">No exceptional action approved.</output>
           </fieldset>
         </form>

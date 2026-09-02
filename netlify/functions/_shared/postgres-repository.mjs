@@ -164,6 +164,40 @@ export const createPostgresRepository = db => ({
     return mandateResult(mandate);
   },
 
+  async listSellerOrders(tokenHash, now, limit) {
+    const { rows } = await db.pool.query(`
+      SELECT o.id AS order_id, o.items, o.total_cents, o.discount_percent, o.status,
+        o.version, o.created_at, pa.id AS action_id, pa.quantity AS action_quantity,
+        pa.state AS action_state, pa.version AS action_version,
+        r.body AS receipt_body, r.issued_at, r.version AS receipt_version
+      FROM orders o
+      LEFT JOIN LATERAL (
+        SELECT id, quantity, state, version FROM pending_actions
+        WHERE order_id = o.id ORDER BY version DESC LIMIT 1
+      ) pa ON true
+      LEFT JOIN receipts r ON r.order_id = o.id
+      WHERE EXISTS (
+        SELECT 1 FROM seller_users
+        WHERE session_token_hash = $1 AND session_expires_at > $2 AND status = 'active'
+      )
+      ORDER BY o.created_at DESC, o.id DESC LIMIT $3
+    `, [tokenHash, now, limit]);
+    return rows.map(row => ({
+      order_id: row.order_id,
+      items: row.items,
+      quantity: row.items.reduce((total, item) => total + item.quantity, 0),
+      total_cents: row.total_cents,
+      discount_percent: row.discount_percent,
+      status: row.status,
+      version: row.version,
+      created_at: new Date(row.created_at).toISOString(),
+      pending_action: row.action_id ? {
+        action_id: row.action_id, quantity: row.action_quantity, state: row.action_state, version: row.action_version
+      } : null,
+      receipt: row.receipt_body ? receiptResult({ body: row.receipt_body, issued_at: row.issued_at, version: row.receipt_version }) : null
+    }));
+  },
+
   async updateMandate(expectedVersion, limits, tokenHash, now) {
     const client = await db.pool.connect();
     try {
