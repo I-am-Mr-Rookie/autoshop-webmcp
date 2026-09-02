@@ -22,9 +22,30 @@
     dt { min-height: 3em; font: .72rem/1.4 "DM Mono", Consolas, monospace; text-transform: uppercase; color: #526474; }
     dd { margin: 12px 0 0; font: 600 clamp(1.35rem, 3vw, 2.2rem)/1 "DM Mono", Consolas, monospace; color: #047857; }
     footer { padding: 18px 24px; border-top: 1px solid #a9b7c4; font: .78rem/1.5 "DM Mono", Consolas, monospace; color: #526474; }
+    .buyer-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, .85fr); }
+    .review, form { padding: clamp(24px, 4vw, 40px); }
+    .review { border-right: 1px solid #a9b7c4; background: #f0f4f8; }
+    h2 { margin: 0 0 12px; font: 400 clamp(1.7rem, 4vw, 2.4rem)/1.1 "DM Serif Display", Georgia, serif; }
+    .review > p, fieldset > p { color: #526474; line-height: 1.55; }
+    .cart { min-height: 72px; margin: 24px 0; padding: 0; list-style: none; border-block: 1px solid #a9b7c4; }
+    .cart li { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid #d7dfe6; }
+    .cart li:last-child { border-bottom: 0; }
+    .total { display: flex; justify-content: space-between; font: 600 1rem/1.4 "DM Mono", Consolas, monospace; }
+    fieldset { margin: 0 0 24px; padding: 0; border: 0; }
+    legend { margin-bottom: 12px; font: 600 .78rem/1.4 "DM Mono", Consolas, monospace; text-transform: uppercase; }
+    .mode-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .mode-option { display: grid; grid-template-columns: auto 1fr; gap: 8px; padding: 14px; border: 1px solid #a9b7c4; cursor: pointer; }
+    .mode-option span { font-weight: 700; }
+    .mode-option small { grid-column: 2; color: #526474; line-height: 1.4; }
+    .field { display: grid; gap: 7px; margin-top: 14px; font: .76rem/1.4 "DM Mono", Consolas, monospace; }
+    input[type="text"], input[type="email"] { width: 100%; border: 1px solid #8295a5; background: #fff; color: #1a242e; padding: 11px 12px; font: 1rem/1.4 Literata, Georgia, serif; }
+    button { width: 100%; border: 1px solid #047857; background: #047857; color: #fff; padding: 13px 16px; font: 600 .82rem/1.2 "DM Mono", Consolas, monospace; cursor: pointer; transition: background 120ms cubic-bezier(.2,.8,.2,1); }
+    button:hover { background: #065f46; }
+    button:disabled { cursor: not-allowed; opacity: .55; }
+    .confirmation-status { display: block; min-height: 3em; margin-top: 14px; color: #1e40af; font: .78rem/1.5 "DM Mono", Consolas, monospace; }
     [hidden] { display: none !important; }
     :focus-visible { outline: 3px solid #1e40af; outline-offset: 3px; }
-    @media (max-width: 720px) { header { grid-template-columns: 1fr; } dl { grid-template-columns: 1fr 1fr; } dl div { border-bottom: 1px solid #a9b7c4; } }
+    @media (max-width: 720px) { header { grid-template-columns: 1fr; } dl { grid-template-columns: 1fr 1fr; } dl div { border-bottom: 1px solid #a9b7c4; } .buyer-grid { grid-template-columns: 1fr; } .review { border-right: 0; border-bottom: 1px solid #a9b7c4; } }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
   </style>
 </head>
@@ -58,10 +79,36 @@
       <header>
         <div>
           <h1>Buyer portal.</h1>
-          <p>Three buyer tool contracts are available here. Seller policy tools stay outside this route.</p>
+          <p>Review the exact cart, choose how much the agent may do, then confirm once before any personal data or final order can be submitted.</p>
         </div>
         <output class="status" id="buyer-status" aria-live="polite">Checking isolation…</output>
       </header>
+      <div class="buyer-grid">
+        <section class="review" aria-labelledby="cart-title">
+          <h2 id="cart-title">Your synthetic cart</h2>
+          <p>Confirmation is bound to this cart version. A later cart change cancels it.</p>
+          <ul class="cart" id="buyer-cart"><li>Loading cart…</li></ul>
+          <p class="total"><span>Synthetic total</span><strong id="buyer-total">—</strong></p>
+        </section>
+        <form id="buyer-confirmation">
+          <fieldset>
+            <legend>Agent authority</legend>
+            <div class="mode-options">
+              <label class="mode-option"><input type="radio" name="mode" value="Ask" checked><span>Ask</span><small>Ask before changing the cart.</small></label>
+              <label class="mode-option"><input type="radio" name="mode" value="Auto"><span>Auto</span><small>May browse and change the cart.</small></label>
+            </div>
+            <p>Both modes stop here for your visible final confirmation.</p>
+          </fieldset>
+          <fieldset>
+            <legend>Buyer details sent on confirmation</legend>
+            <label class="field">Name<input name="buyer_name" type="text" autocomplete="name" maxlength="80" required></label>
+            <label class="field">Email<input name="buyer_email" type="email" autocomplete="email" maxlength="254" required></label>
+            <label class="field">Country<input name="buyer_country" type="text" autocomplete="country-name" maxlength="56" required></label>
+          </fieldset>
+          <button type="submit">Confirm buyer and authorize order</button>
+          <output class="confirmation-status" id="confirmation-status" aria-live="polite">No finalization authorization minted.</output>
+        </form>
+      </div>
       <footer>Buyer tools: 3 role-scoped contracts · seller tools: unavailable</footer>
     </section>
   </main>

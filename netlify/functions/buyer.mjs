@@ -14,7 +14,7 @@ const validation = () => json({
 
 export const hashSessionToken = token => createHash('sha256').update(token).digest('hex');
 
-const readToken = request => request.headers.get('cookie')
+export const readBuyerToken = request => request.headers.get('cookie')
   ?.split(';')
   .map(part => part.trim().split('='))
   .find(([name, value]) => name === 'autoshop_buyer' && /^[a-f0-9]{64}$/.test(value ?? ''))?.[1];
@@ -46,7 +46,7 @@ export const createHandler = (getRepository, options = {}) => async request => {
 
   try {
     const repository = await getRepository();
-    let rawToken = readToken(request);
+    let rawToken = readBuyerToken(request);
     let session = rawToken && await repository.findBuyerSession(hashSessionToken(rawToken), now);
     let setCookie;
     if (!session) {
@@ -61,6 +61,7 @@ export const createHandler = (getRepository, options = {}) => async request => {
     if (method === 'GET') return json({
       ok: true,
       session_expires_at: new Date(session.expires_at).toISOString(),
+      mode: session.mode ?? 'Ask',
       products: await repository.listProducts(browseInput.query, browseInput.limit),
       cart: await repository.getCart(session.id)
     }, 200, headers);

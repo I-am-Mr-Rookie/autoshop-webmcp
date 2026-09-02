@@ -119,10 +119,80 @@ export async function registerRoleTools(modelContext, pathname, onPageHide) {
   return () => controller.abort();
 }
 
+let buyerAuthorization;
+
+export const getBuyerAuthorization = () => buyerAuthorization;
+
+export async function requestBuyerConfirmation(fetcher, input) {
+  const response = await fetcher('/api/buyer/confirm', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(input)
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error?.message ?? 'Buyer confirmation failed.');
+  buyerAuthorization = result;
+  return {
+    authorization: result,
+    message: `${result.mode} authority confirmed for cart version ${result.cart_version}. Final order submission still requires this one-time authorization.`
+  };
+}
+
+async function setupBuyerConfirmation() {
+  const form = document.querySelector('#buyer-confirmation');
+  if (!form) return;
+  const cartList = document.querySelector('#buyer-cart');
+  const total = document.querySelector('#buyer-total');
+  const confirmationStatus = document.querySelector('#confirmation-status');
+  const button = form.querySelector('button');
+  let cartVersion;
+
+  try {
+    const response = await fetch('/api/buyer');
+    const state = await response.json();
+    if (!response.ok) throw new Error(state.error?.message ?? 'Buyer cart unavailable.');
+    cartVersion = state.cart.version;
+    form.elements.mode.value = state.mode;
+    const names = new Map(state.products.map(product => [product.id, product.name]));
+    cartList.replaceChildren(...(state.cart.items.length
+      ? state.cart.items.map(item => {
+          const row = document.createElement('li');
+          const name = document.createElement('span');
+          const quantity = document.createElement('strong');
+          name.textContent = names.get(item.product_id) ?? item.product_id;
+          quantity.textContent = `× ${item.quantity}`;
+          row.append(name, quantity);
+          return row;
+        })
+      : [Object.assign(document.createElement('li'), { textContent: 'Your cart is empty.' })]));
+    total.textContent = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(state.cart.total_cents / 100);
+    button.disabled = state.cart.items.length === 0;
+  } catch (error) {
+    cartList.replaceChildren(Object.assign(document.createElement('li'), { textContent: error.message }));
+    button.disabled = true;
+  }
+
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    button.disabled = true;
+    confirmationStatus.textContent = 'Confirming the reviewed cart…';
+    try {
+      const values = Object.fromEntries(new FormData(form));
+      const result = await requestBuyerConfirmation(fetch, { ...values, cart_version: cartVersion });
+      confirmationStatus.textContent = result.message;
+    } catch (error) {
+      buyerAuthorization = undefined;
+      confirmationStatus.textContent = error.message;
+      button.disabled = false;
+    }
+  });
+}
+
 if (typeof document !== 'undefined') {
   const role = location.pathname === '/buyer' ? 'buyer' : 'seller';
   document.querySelectorAll('[data-role-view]').forEach(view => { view.hidden = view.dataset.roleView !== role; });
   document.title = `AutoShop ${role}`;
+  if (role === 'buyer') setupBuyerConfirmation();
 
   const status = document.querySelector(role === 'buyer' ? '#buyer-status' : '#seller-status');
   if (typeof document.modelContext?.registerTool === 'function') {

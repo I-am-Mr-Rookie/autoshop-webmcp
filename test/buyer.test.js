@@ -64,6 +64,7 @@ test('creates a private 24-hour buyer session and reads a bounded catalogue', as
   assert.deepEqual(await response.json(), {
     ok: true,
     session_expires_at: '2026-09-03T12:00:00.000Z',
+    mode: 'Ask',
     products: [{ id: 'ram-1', name: '16GB DDR5 Kit', price_cents: 4900, stock: 12 }],
     cart: { items: [], total_cents: 0, version: 1 }
   });

@@ -56,7 +56,7 @@ export const createPostgresRepository = db => ({
 
   async findBuyerSession(id, now) {
     await db.pool.query('DELETE FROM buyer_sessions WHERE id = $1 AND expires_at <= $2', [id, now]);
-    const { rows: [session] } = await db.pool.query('SELECT id, expires_at FROM buyer_sessions WHERE id = $1', [id]);
+    const { rows: [session] } = await db.pool.query('SELECT id, mode, expires_at FROM buyer_sessions WHERE id = $1', [id]);
     return session ?? null;
   },
 
@@ -99,9 +99,54 @@ export const createPostgresRepository = db => ({
       else if (action !== 'remove') items.push({ product_id: productId, quantity });
 
       await client.query('UPDATE carts SET items = $2::jsonb, version = version + 1 WHERE buyer_session_id = $1', [sessionId, JSON.stringify(items)]);
+      await client.query(`
+        UPDATE buyer_sessions SET confirmed_order_id = NULL, confirm_token_hash = NULL,
+          confirm_cart_version = NULL, confirm_expires_at = NULL, version = version + 1
+        WHERE id = $1
+      `, [sessionId]);
       const result = await cartResult(client, sessionId);
       await client.query('COMMIT');
       return result;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  },
+
+  async confirmBuyer(sessionId, now, { mode, buyerName, buyerEmail, buyerCountry, orderId, tokenHash, expiresAt, reviewedCartVersion }) {
+    const client = await db.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows: [session] } = await client.query(
+        'SELECT id FROM buyer_sessions WHERE id = $1 AND expires_at > $2 FOR UPDATE',
+        [sessionId, now]
+      );
+      const { rows: [cart] } = await client.query(
+        'SELECT items, version FROM carts WHERE buyer_session_id = $1 FOR UPDATE',
+        [sessionId]
+      );
+      if (!session) {
+        await client.query('ROLLBACK');
+        return { error: 'FORBIDDEN' };
+      }
+      if (!cart?.items?.length) {
+        await client.query('ROLLBACK');
+        return { error: 'EMPTY_CART' };
+      }
+      if (cart.version !== reviewedCartVersion) {
+        await client.query('ROLLBACK');
+        return { error: 'STALE' };
+      }
+      await client.query(`
+        UPDATE buyer_sessions SET mode = $2, buyer_name = $3, buyer_email = $4,
+          buyer_country = $5, confirmed_order_id = $6, confirm_token_hash = $7,
+          confirm_cart_version = $8, confirm_expires_at = $9, version = version + 1
+        WHERE id = $1
+      `, [sessionId, mode, buyerName, buyerEmail, buyerCountry, orderId, tokenHash, cart.version, expiresAt]);
+      await client.query('COMMIT');
+      return { mode, cart_version: cart.version, expires_at: expiresAt.toISOString() };
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
