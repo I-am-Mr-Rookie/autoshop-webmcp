@@ -17,6 +17,7 @@ test('production configuration freezes security headers, generated-state ignores
     'Referrer-Policy',
     'Permissions-Policy'
   ]) assert.match(config, new RegExp(header));
+  assert.match(config, /sha256-mTJ4cJaTm2Gw95GeXEpZdvEEY9ybh6FZu1bwcNE7QlY=/);
   assert.match(ignore, /^\.playwright-cli\/$/m);
   assert.deepEqual(migrations.sort(), [
     '001_initial-schema',
