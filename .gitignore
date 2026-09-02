@@ -8,4 +8,5 @@ coverage/
 
 # Local Netlify folder
 .netlify
+.playwright-cli/
 deno.lock
