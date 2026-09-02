@@ -3,12 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>AutoShop mandate</title>
+  <title>AutoShop</title>
   <style>
     :root { color-scheme: light; font-family: Literata, Georgia, serif; color: #1a242e; background: #f0f4f8; }
     * { box-sizing: border-box; }
     body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; }
     main { width: min(960px, 100%); border: 1px solid #a9b7c4; background: #fafaf8; }
+    nav { display: flex; justify-content: space-between; align-items: center; padding: 14px 24px; border-bottom: 1px solid #a9b7c4; font: .82rem/1 "DM Mono", Consolas, monospace; }
+    nav div { display: flex; gap: 18px; }
+    a { color: #1e40af; text-underline-offset: 4px; }
     header { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: start; padding: clamp(28px, 6vw, 64px); border-bottom: 1px solid #a9b7c4; }
     h1 { margin: 0; font-family: "DM Serif Display", Georgia, serif; font-size: clamp(3rem, 9vw, 6.4rem); font-weight: 400; line-height: .9; letter-spacing: -.04em; }
     header p { max-width: 42ch; margin: 20px 0 0; font-size: 1.05rem; line-height: 1.6; }
@@ -19,6 +22,7 @@
     dt { min-height: 3em; font: .72rem/1.4 "DM Mono", Consolas, monospace; text-transform: uppercase; color: #526474; }
     dd { margin: 12px 0 0; font: 600 clamp(1.35rem, 3vw, 2.2rem)/1 "DM Mono", Consolas, monospace; color: #047857; }
     footer { padding: 18px 24px; border-top: 1px solid #a9b7c4; font: .78rem/1.5 "DM Mono", Consolas, monospace; color: #526474; }
+    [hidden] { display: none !important; }
     :focus-visible { outline: 3px solid #1e40af; outline-offset: 3px; }
     @media (max-width: 720px) { header { grid-template-columns: 1fr; } dl { grid-template-columns: 1fr 1fr; } dl div { border-bottom: 1px solid #a9b7c4; } }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
@@ -26,21 +30,40 @@
 </head>
 <body>
   <main>
-    <header>
-      <div>
-        <h1>Seller mandate.</h1>
-        <p>AutoShop exposes this bounded, synthetic policy through one read-only WebMCP tool. No orders, stock, or personal data can change in this stub.</p>
-      </div>
-      <output class="status" id="webmcp-status" aria-live="polite">Checking WebMCP…</output>
-    </header>
-    <dl aria-label="Current mandate limits">
-      <div><dt>Items per order</dt><dd>5</dd></div>
-      <div><dt>Order total</dt><dd>$100</dd></div>
-      <div><dt>Discount</dt><dd>10%</dd></div>
-      <div><dt>Stock remaining</dt><dd>2</dd></div>
-      <div><dt>Version</dt><dd>1</dd></div>
-    </dl>
-    <footer>Tool: get_mandate · input: empty object only · output: fixed bounded fields · lifecycle: removed on page exit</footer>
+    <nav aria-label="Portal navigation">
+      <strong>AutoShop</strong>
+      <div><a href="/buyer">Buyer</a><a href="/seller">Seller</a></div>
+    </nav>
+
+    <section data-role-view="seller">
+      <header>
+        <div>
+          <h1>Seller mandate.</h1>
+          <p>This synthetic policy is visible through one read-only seller tool. Leaving this portal removes that tool.</p>
+          <p><a id="leave-seller" href="/buyer">Leave seller portal</a></p>
+        </div>
+        <output class="status" id="seller-status" aria-live="polite">Checking WebMCP…</output>
+      </header>
+      <dl aria-label="Current mandate limits">
+        <div><dt>Items per order</dt><dd>5</dd></div>
+        <div><dt>Order total</dt><dd>$100</dd></div>
+        <div><dt>Discount</dt><dd>10%</dd></div>
+        <div><dt>Stock remaining</dt><dd>2</dd></div>
+        <div><dt>Version</dt><dd>1</dd></div>
+      </dl>
+      <footer>Seller tool: get_mandate · input: empty object only · removed on exit</footer>
+    </section>
+
+    <section data-role-view="buyer" hidden>
+      <header>
+        <div>
+          <h1>Buyer portal.</h1>
+          <p>Shopping tools arrive in a later run. Seller policy tools stay outside this route.</p>
+        </div>
+        <output class="status" id="buyer-status" aria-live="polite">Checking isolation…</output>
+      </header>
+      <footer>Seller tools: unavailable · buyer tools: not implemented yet</footer>
+    </section>
   </main>
   <script type="module" src="/app.js"></script>
 </body>

@@ -49,13 +49,25 @@ export async function registerGetMandate(modelContext, onPageHide) {
   return () => controller.abort();
 }
 
+export async function registerRoleTools(modelContext, pathname, onPageHide) {
+  return ['/', '/seller'].includes(pathname) ? registerGetMandate(modelContext, onPageHide) : () => {};
+}
+
 if (typeof document !== 'undefined') {
-  const status = document.querySelector('#webmcp-status');
-  if (typeof document.modelContext?.registerTool === 'function') {
-    registerGetMandate(document.modelContext, cleanup => addEventListener('pagehide', cleanup, { once: true }))
-      .then(() => { status.textContent = 'WebMCP tool registered'; })
-      .catch(() => { status.textContent = 'WebMCP registration failed'; });
+  const role = location.pathname === '/buyer' ? 'buyer' : 'seller';
+  document.querySelectorAll('[data-role-view]').forEach(view => { view.hidden = view.dataset.roleView !== role; });
+  document.title = `AutoShop ${role}`;
+
+  if (role === 'buyer') {
+    document.querySelector('#buyer-status').textContent = 'Seller tools unavailable';
+  } else if (typeof document.modelContext?.registerTool === 'function') {
+    registerRoleTools(document.modelContext, location.pathname, cleanup => addEventListener('pagehide', cleanup, { once: true }))
+      .then(cleanup => {
+        document.querySelector('#seller-status').textContent = 'WebMCP tool registered';
+        document.querySelector('#leave-seller').addEventListener('click', cleanup, { once: true });
+      })
+      .catch(() => { document.querySelector('#seller-status').textContent = 'WebMCP registration failed'; });
   } else {
-    status.textContent = 'WebMCP unavailable here';
+    document.querySelector('#seller-status').textContent = 'WebMCP unavailable here';
   }
 }
