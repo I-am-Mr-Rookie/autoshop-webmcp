@@ -48,7 +48,7 @@ const unavailable = () => failure('UNAVAILABLE', 'This operation is not availabl
 function accepts(schema, input) {
   if (!input || Array.isArray(input) || typeof input !== 'object') return false;
   if (Object.keys(input).some(key => !Object.hasOwn(schema.properties, key))) return false;
-  if (schema.required.some(key => !(key in input))) return false;
+  if (schema.required.some(key => !Object.hasOwn(input, key))) return false;
 
   return Object.entries(input).every(([key, value]) => {
     const rule = schema.properties[key];

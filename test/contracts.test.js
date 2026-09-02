@@ -51,24 +51,39 @@ test('runtime validation returns bounded structured errors', async () => {
     ok: false,
     error: { code: 'VALIDATION', message: 'Input does not match the tool contract.', retryable: false }
   });
+  for (const invalid of [
+    { action: 'add', product_id: 'cpu-1' },
+    { action: 'add', product_id: 'cpu-1', quantity: 21 },
+    Object.create({ action: 'add', product_id: 'cpu-1', quantity: 1 })
+  ]) assert.deepEqual(await app.BUYER_TOOLS[1].execute(invalid), {
+    ok: false,
+    error: { code: 'VALIDATION', message: 'Input does not match the tool contract.', retryable: false }
+  });
 });
 
-test('registers only the active role contracts and aborts them together', async () => {
+test('forbids cross-role registrations and cleans up the active role', async () => {
   const registrations = [];
   let cleanup;
   const modelContext = { registerTool: async (tool, options) => registrations.push({ tool, options }) };
 
   const stopBuyer = await app.registerRoleTools(modelContext, '/buyer', handler => { cleanup = handler; });
   assert.deepEqual(registrations.map(({ tool }) => tool.name), ['browse_products', 'manage_cart', 'submit_order']);
+  assert.equal(registrations.some(({ tool }) => tool.name === 'get_mandate'), false);
   assert.equal(new Set(registrations.map(({ options }) => options.signal)).size, 1);
-  stopBuyer();
-  assert.ok(registrations.every(({ options }) => options.signal.aborted));
   cleanup();
+  assert.ok(registrations.every(({ options }) => options.signal.aborted));
+  stopBuyer();
 
   registrations.length = 0;
   const stopSeller = await app.registerRoleTools(modelContext, '/seller', () => {});
   assert.deepEqual(registrations.map(({ tool }) => tool.name), ['get_mandate', 'list_orders', 'accept_order', 'commit_action']);
+  assert.equal(registrations.some(({ tool }) => tool.name === 'browse_products'), false);
   stopSeller();
+
+  registrations.length = 0;
+  const stopUnknown = await app.registerRoleTools(modelContext, '/api', () => assert.fail('cleanup registered for an unauthorized route'));
+  assert.deepEqual(registrations, []);
+  stopUnknown();
 });
 
 test('aborts earlier registrations when a later registration fails', async () => {
