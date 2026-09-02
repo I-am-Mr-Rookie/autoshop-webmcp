@@ -112,7 +112,8 @@ test('re-evaluates quantity six without mutating stock or silently accepting it'
   assert.equal(isOrderEligible({ ...order, quantity: 10, items: [...order.items, { product_id: 'ram-1', quantity: 4 }] }, products, { ...input, max_items_per_order: 10 }), false);
 
   const repository = await readFile(new URL('../netlify/functions/_shared/postgres-repository.mjs', import.meta.url), 'utf8');
-  assert.doesNotMatch(repository, /UPDATE\s+products/i);
-  assert.match(repository, /state = 'replaced'/);
-  assert.match(repository, /const state = permitted \? 'eligible' : 'pending'/);
+  const mandateUpdate = repository.slice(repository.indexOf('async updateMandate'), repository.indexOf('async listProducts'));
+  assert.doesNotMatch(mandateUpdate, /UPDATE\s+products/i);
+  assert.match(mandateUpdate, /state = 'replaced'/);
+  assert.match(mandateUpdate, /const state = permitted \? 'eligible' : 'pending'/);
 });
