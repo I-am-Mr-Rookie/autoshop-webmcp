@@ -76,10 +76,74 @@ function tool(name, title, description, annotations, handler = unavailable) {
 const readOnly = Object.freeze({ readOnlyHint: true, untrustedContentHint: false });
 const mutating = Object.freeze({ readOnlyHint: false, untrustedContentHint: false });
 
+export async function readBuyerState(fetcher, input = {}) {
+  const params = new URLSearchParams();
+  if (input.query) params.set('query', input.query);
+  if (input.limit) params.set('limit', input.limit);
+  const response = await fetcher(`/api/buyer?${params}`);
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error?.message ?? 'Buyer data is temporarily unavailable.');
+  return result;
+}
+
+export async function mutateBuyerCart(fetcher, input) {
+  const response = await fetcher('/api/buyer', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(input)
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error?.message ?? 'Cart update failed.');
+  return result;
+}
+
+export async function submitBuyerOrder(fetcher, input) {
+  const response = await fetcher('/api/buyer/order', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(input)
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error?.message ?? 'Order submission failed.');
+  return result;
+}
+
+export async function readBuyerOrder(fetcher, orderId) {
+  const response = await fetcher(`/api/buyer/order?order_id=${encodeURIComponent(orderId)}`);
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error?.message ?? 'Order status is unavailable.');
+  return result;
+}
+
+export async function resetDemoData(fetcher) {
+  const response = await fetcher('/api/demo-data/reset', {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ confirm: 'RESET' })
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error?.message ?? 'Demo reset failed.');
+  return result;
+}
+
+const browserTool = handler => async input => {
+  if (typeof document === 'undefined') return unavailable();
+  try { return await handler(input); }
+  catch { return failure('UNAVAILABLE', 'Buyer data is temporarily unavailable.', true); }
+};
+
 export const BUYER_TOOLS = Object.freeze([
-  tool('browse_products', 'Browse products', 'Find up to 8 synthetic computer parts by an optional 80-character query. Returns bounded catalogue data and never changes state.', readOnly),
-  tool('manage_cart', 'Manage cart', 'Add, set, or remove one bounded product quantity in the temporary buyer cart. This changes cart state only.', mutating),
-  tool('submit_order', 'Submit order', 'Submit one synthetic order only with a page-minted buyer confirmation token. This is consequential and never processes payment.', mutating)
+  tool('browse_products', 'Browse products', 'Find up to 8 synthetic computer parts by an optional 80-character query. Returns bounded catalogue data and never changes state.', readOnly,
+    browserTool(async input => {
+      const result = await readBuyerState(fetch, input);
+      return { ok: true, products: result.products };
+    })),
+  tool('manage_cart', 'Manage cart', 'Add, set, or remove one bounded product quantity in the temporary buyer cart. This changes cart state only.', mutating,
+    browserTool(async input => {
+      const result = await mutateBuyerCart(fetch, input);
+      if (typeof document.dispatchEvent === 'function') document.dispatchEvent(new Event('autoshop:buyer-change'));
+      return result;
+    })),
+  tool('submit_order', 'Submit order', 'Submit one synthetic order only with a page-minted buyer confirmation token. This is consequential and never processes payment.', mutating,
+    browserTool(async input => {
+      const result = await submitBuyerOrder(fetch, input);
+      if (typeof document.dispatchEvent === 'function') document.dispatchEvent(new Event('autoshop:order-change'));
+      return result;
+    }))
 ]);
 
 let currentMandate = MANDATE;
@@ -229,36 +293,97 @@ export async function requestSellerApproval(fetcher, input) {
 async function setupBuyerConfirmation() {
   const form = document.querySelector('#buyer-confirmation');
   if (!form) return;
+  const search = document.querySelector('#product-search');
+  const products = document.querySelector('#buyer-products');
   const cartList = document.querySelector('#buyer-cart');
   const total = document.querySelector('#buyer-total');
   const confirmationStatus = document.querySelector('#confirmation-status');
   const button = form.querySelector('button');
+  const submit = document.querySelector('#buyer-submit-order');
+  const orderStatus = document.querySelector('#buyer-order-status');
+  const reset = document.querySelector('#reset-demo');
   let cartVersion;
+  let catalogue = [];
 
-  try {
-    const response = await fetch('/api/buyer');
-    const state = await response.json();
-    if (!response.ok) throw new Error(state.error?.message ?? 'Buyer cart unavailable.');
+  const money = cents => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
+  const clearAuthorization = () => {
+    buyerAuthorization = undefined;
+    submit.hidden = true;
+    submit.disabled = false;
+  };
+
+  const render = state => {
+    catalogue = state.products;
     cartVersion = state.cart.version;
     form.elements.mode.value = state.mode;
-    const names = new Map(state.products.map(product => [product.id, product.name]));
-    cartList.replaceChildren(...(state.cart.items.length
-      ? state.cart.items.map(item => {
-          const row = document.createElement('li');
-          const name = document.createElement('span');
-          const quantity = document.createElement('strong');
-          name.textContent = names.get(item.product_id) ?? item.product_id;
-          quantity.textContent = `× ${item.quantity}`;
-          row.append(name, quantity);
-          return row;
-        })
-      : [Object.assign(document.createElement('li'), { textContent: 'Your cart is empty.' })]));
-    total.textContent = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(state.cart.total_cents / 100);
+    products.replaceChildren(...(catalogue.length ? catalogue.map(product => {
+      const card = document.createElement('article');
+      card.className = 'product-card';
+      card.innerHTML = `<p class="product-stock"></p><h3></h3><p class="product-price"></p><button type="button">Add to cart</button>`;
+      card.querySelector('.product-stock').textContent = `${product.stock} in stock`;
+      card.querySelector('h3').textContent = product.name;
+      card.querySelector('.product-price').textContent = money(product.price_cents);
+      const add = card.querySelector('button');
+      add.dataset.productId = product.id;
+      add.disabled = product.stock === 0;
+      return card;
+    }) : [Object.assign(document.createElement('p'), { textContent: 'No matching parts. Try a shorter search.' })]));
+    const byId = new Map(catalogue.map(product => [product.id, product]));
+    cartList.replaceChildren(...(state.cart.items.length ? state.cart.items.map(item => {
+      const row = document.createElement('li');
+      const product = byId.get(item.product_id);
+      row.innerHTML = `<span class="cart-copy"><strong></strong><small></small></span><span class="cart-controls"><button type="button" aria-label="Decrease quantity">−</button><b></b><button type="button" aria-label="Increase quantity">+</button><button type="button" class="remove">Remove</button></span>`;
+      row.querySelector('strong').textContent = product?.name ?? item.product_id;
+      row.querySelector('small').textContent = money((product?.price_cents ?? 0) * item.quantity);
+      row.querySelector('b').textContent = item.quantity;
+      const [decrease, increase, removeButton] = row.querySelectorAll('button');
+      decrease.dataset.action = item.quantity === 1 ? 'remove' : 'set';
+      decrease.dataset.quantity = Math.max(1, item.quantity - 1);
+      increase.dataset.action = 'set';
+      increase.dataset.quantity = item.quantity + 1;
+      increase.disabled = item.quantity >= (product?.stock ?? 20) || item.quantity >= 20;
+      removeButton.dataset.action = 'remove';
+      for (const control of [decrease, increase, removeButton]) control.dataset.productId = item.product_id;
+      return row;
+    }) : [Object.assign(document.createElement('li'), { textContent: 'Your cart is empty. Add a part to begin.' })]));
+    total.textContent = money(state.cart.total_cents);
     button.disabled = state.cart.items.length === 0;
-  } catch (error) {
-    cartList.replaceChildren(Object.assign(document.createElement('li'), { textContent: error.message }));
-    button.disabled = true;
-  }
+  };
+
+  const load = async input => {
+    try { render(await readBuyerState(fetch, input)); }
+    catch (error) {
+      cartList.replaceChildren(Object.assign(document.createElement('li'), { textContent: error.message }));
+      button.disabled = true;
+    }
+  };
+
+  const changeCart = async input => {
+    clearAuthorization();
+    confirmationStatus.textContent = 'Cart changed. Review it before confirming.';
+    await mutateBuyerCart(fetch, input);
+    await load();
+  };
+
+  await load();
+
+  search.addEventListener('submit', event => {
+    event.preventDefault();
+    const query = new FormData(search).get('query').trim();
+    load(query ? { query, limit: 8 } : {});
+  });
+  products.addEventListener('click', event => {
+    const add = event.target.closest('button[data-product-id]');
+    if (add) changeCart({ action: 'add', product_id: add.dataset.productId, quantity: 1 }).catch(error => { confirmationStatus.textContent = error.message; });
+  });
+  cartList.addEventListener('click', event => {
+    const control = event.target.closest('button[data-action]');
+    if (control) changeCart({
+      action: control.dataset.action,
+      product_id: control.dataset.productId,
+      quantity: Number(control.dataset.quantity ?? 1)
+    }).catch(error => { confirmationStatus.textContent = error.message; });
+  });
 
   form.addEventListener('submit', async event => {
     event.preventDefault();
@@ -268,11 +393,43 @@ async function setupBuyerConfirmation() {
       const values = Object.fromEntries(new FormData(form));
       const result = await requestBuyerConfirmation(fetch, { ...values, cart_version: cartVersion });
       confirmationStatus.textContent = result.message;
+      submit.hidden = false;
+      orderStatus.textContent = `Order ${result.authorization.order_id} is authorized but not submitted.`;
     } catch (error) {
-      buyerAuthorization = undefined;
+      clearAuthorization();
       confirmationStatus.textContent = error.message;
       button.disabled = false;
     }
+  });
+
+  submit.addEventListener('click', async () => {
+    if (!buyerAuthorization) return;
+    submit.disabled = true;
+    orderStatus.textContent = 'Submitting the synthetic order…';
+    try {
+      const result = await submitBuyerOrder(fetch, {
+        order_id: buyerAuthorization.order_id,
+        confirm_token: buyerAuthorization.confirm_token
+      });
+      orderStatus.textContent = `Order ${result.order.order_id}: ${result.order.status}. Synthetic total ${money(result.order.total_cents)}.`;
+      confirmationStatus.textContent = 'Authorization consumed. The seller can now review this order.';
+    } catch (error) {
+      orderStatus.textContent = error.message;
+      submit.disabled = false;
+    }
+  });
+
+  reset.addEventListener('click', async () => {
+    if (!confirm('Reset every synthetic order, cart, receipt, mandate, and seller session?')) return;
+    reset.disabled = true;
+    try { await resetDemoData(fetch); location.reload(); }
+    catch (error) { orderStatus.textContent = error.message; reset.disabled = false; }
+  });
+  document.addEventListener('autoshop:buyer-change', () => { clearAuthorization(); load(); });
+  document.addEventListener('autoshop:order-change', () => {
+    if (buyerAuthorization) readBuyerOrder(fetch, buyerAuthorization.order_id)
+      .then(result => { orderStatus.textContent = `Order ${result.order.order_id}: ${result.order.status}.`; })
+      .catch(error => { orderStatus.textContent = error.message; });
   });
 }
 
