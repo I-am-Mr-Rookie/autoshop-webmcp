@@ -52,8 +52,8 @@ export const createAcceptHandler = (getRepository, options = {}) => async reques
     }, errors.APPROVAL_REQUIRED[0]);
     if (result?.error) return error(result.error, errors[result.error]?.[1] ?? errors.UNAVAILABLE[1], errors[result.error]?.[0] ?? 503);
     return json({ ok: true, replayed: result.replayed, receipt: result.receipt }, result.replayed ? 200 : 201);
-  } catch (caught) {
-    console.error('seller acceptance failed:', caught instanceof Error ? caught.message : 'unknown error');
+  } catch {
+    console.error('seller acceptance failed');
     return error('UNAVAILABLE', errors.UNAVAILABLE[1], 503);
   }
 };

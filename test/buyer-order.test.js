@@ -94,10 +94,10 @@ test('rejects malformed, unauthorized, expired, and stale submissions', async ()
   }
 });
 
-test('closes submitted carts and lets expired buyer sessions cascade', async () => {
+test('closes submitted carts without cascading durable orders from expired buyer sessions', async () => {
   const repositorySource = await readFile(new URL('../netlify/functions/_shared/postgres-repository.mjs', import.meta.url), 'utf8');
-  const migration = await readFile(new URL('../netlify/database/migrations/003_order-submission/migration.sql', import.meta.url), 'utf8');
+  const migration = await readFile(new URL('../netlify/database/migrations/010_order-retention/migration.sql', import.meta.url), 'utf8').catch(() => '');
 
   assert.match(repositorySource, /FROM carts WHERE buyer_session_id = \$1 AND status = 'open' FOR UPDATE/);
-  assert.match(migration, /FOREIGN KEY \(buyer_session_id\) REFERENCES buyer_sessions\(id\) ON DELETE CASCADE/);
+  assert.match(migration, /FOREIGN KEY \(buyer_session_id\) REFERENCES buyer_sessions\(id\) ON DELETE SET NULL/);
 });

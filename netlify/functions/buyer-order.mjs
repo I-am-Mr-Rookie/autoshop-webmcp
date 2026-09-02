@@ -57,8 +57,8 @@ export const createOrderHandler = (getRepository, options = {}) => async request
     const result = await repository.submitOrder(session.id, now, input.order_id, hashConfirmationToken(input.confirm_token));
     if (result?.error) return errorResponse(result.error);
     return json({ ok: true, replayed: result.replayed, order: result.order }, result.replayed ? 200 : 201);
-  } catch (error) {
-    console.error('buyer order failed:', error instanceof Error ? error.message : 'unknown error');
+  } catch {
+    console.error('buyer order failed');
     return json({ ok: false, error: { code: 'UNAVAILABLE', message: 'Synthetic order submission is temporarily unavailable.' } }, 503);
   }
 };

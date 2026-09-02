@@ -45,8 +45,8 @@ export const createApprovalHandler = (getRepository, options = {}) => async requ
     const result = await repository.approveAction(input.action_id, hashApprovalToken(token), expiresAt, seller.tokenHash, now);
     if (result?.error) return error(result.error, errors[result.error]?.[1] ?? errors.UNAVAILABLE[1], errors[result.error]?.[0] ?? 503);
     return json({ ok: true, approval: result.approval, confirm_token: token }, 201);
-  } catch (caught) {
-    console.error('seller approval failed:', caught instanceof Error ? caught.message : 'unknown error');
+  } catch {
+    console.error('seller approval failed');
     return error('UNAVAILABLE', errors.UNAVAILABLE[1], 503);
   }
 };

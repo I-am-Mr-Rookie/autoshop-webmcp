@@ -200,10 +200,9 @@ export const COMMIT_ACTION_TOOL = tool(
   async input => {
     if (typeof document === 'undefined') return unavailable();
     try {
-      const authorization = sellerAuthorization?.approval.action_id === input.action_id
-        ? sellerAuthorization.confirm_token
-        : input.confirm_token;
-      const result = await commitSellerAction(fetch, { ...input, confirm_token: authorization });
+      const result = await commitSellerAction(fetch, input);
+      sellerAuthorization = undefined;
+      if (typeof document.dispatchEvent === 'function') document.dispatchEvent(new Event('autoshop:seller-authorization-cleared'));
       if (typeof document.dispatchEvent === 'function') document.dispatchEvent(new Event('autoshop:seller-change'));
       return result;
     } catch {
@@ -232,7 +231,7 @@ export async function registerGetMandate(modelContext, onPageHide) {
 }
 
 export async function registerRoleTools(modelContext, pathname, onPageHide) {
-  const tools = pathname === '/buyer' ? BUYER_TOOLS : ['/', '/seller'].includes(pathname) ? SELLER_TOOLS : [];
+  const tools = pathname === '/buyer' ? BUYER_TOOLS : pathname === '/seller' ? SELLER_TOOLS : [];
   if (!tools.length) return () => {};
 
   const controller = new AbortController();
@@ -320,12 +319,13 @@ async function setupBuyerConfirmation() {
   const button = form.querySelector('button');
   const submit = document.querySelector('#buyer-submit-order');
   const orderStatus = document.querySelector('#buyer-order-status');
-  const reset = document.querySelector('#reset-demo');
   let cartVersion;
   let catalogue = [];
+  let authorizationTimer;
 
   const money = cents => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
   const clearAuthorization = () => {
+    clearTimeout(authorizationTimer);
     buyerAuthorization = undefined;
     submit.hidden = true;
     submit.disabled = false;
@@ -338,6 +338,7 @@ async function setupBuyerConfirmation() {
     products.replaceChildren(...(catalogue.length ? catalogue.map(product => {
       const card = document.createElement('article');
       card.className = 'product-card';
+      card.dataset.stock = product.stock === 0 ? 'empty' : 'available';
       card.innerHTML = `<p class="product-stock"></p><h3></h3><p class="product-price"></p><button type="button">Add to cart</button>`;
       card.querySelector('.product-stock').textContent = `${product.stock} in stock`;
       card.querySelector('h3').textContent = product.name;
@@ -411,6 +412,11 @@ async function setupBuyerConfirmation() {
     try {
       const values = Object.fromEntries(new FormData(form));
       const result = await requestBuyerConfirmation(fetch, { ...values, cart_version: cartVersion });
+      clearTimeout(authorizationTimer);
+      authorizationTimer = setTimeout(() => {
+        clearAuthorization();
+        confirmationStatus.textContent = 'Authorization expired. Review and confirm the cart again.';
+      }, Math.max(0, new Date(result.authorization.confirmation_expires_at) - Date.now()));
       confirmationStatus.textContent = result.message;
       submit.hidden = false;
       orderStatus.textContent = `Order ${result.authorization.order_id} is authorized but not submitted.`;
@@ -432,18 +438,13 @@ async function setupBuyerConfirmation() {
       });
       orderStatus.textContent = `Order ${result.order.order_id}: ${result.order.status}. Synthetic total ${money(result.order.total_cents)}.`;
       confirmationStatus.textContent = 'Authorization consumed. The seller can now review this order.';
+      clearAuthorization();
     } catch (error) {
       orderStatus.textContent = error.message;
       submit.disabled = false;
     }
   });
 
-  reset.addEventListener('click', async () => {
-    if (!confirm('Reset every synthetic order, cart, receipt, mandate, and seller session?')) return;
-    reset.disabled = true;
-    try { await resetDemoData(fetch); location.reload(); }
-    catch (error) { orderStatus.textContent = error.message; reset.disabled = false; }
-  });
   document.addEventListener('autoshop:buyer-change', () => { clearAuthorization(); load(); });
   document.addEventListener('autoshop:order-change', () => {
     if (buyerAuthorization) readBuyerOrder(fetch, buyerAuthorization.order_id)
@@ -468,6 +469,7 @@ async function setupSellerAuthentication() {
   const status = document.querySelector('#seller-status');
   const loginStatus = document.querySelector('#seller-login-status');
   const logout = document.querySelector('#seller-logout');
+  const reset = document.querySelector('#reset-demo');
   let cleanup = () => {};
   let expiryTimer;
   let sellerApprovalTimer;
@@ -499,6 +501,7 @@ async function setupSellerAuthentication() {
     orders.replaceChildren(...(list.length ? list.map(order => {
       const card = document.createElement('article');
       card.className = 'seller-order';
+      card.dataset.state = order.status;
       const copy = document.createElement('div');
       const id = document.createElement('code');
       const title = document.createElement('h3');
@@ -709,6 +712,13 @@ async function setupSellerAuthentication() {
   });
 
   refreshOrders.addEventListener('click', loadOrders);
+  document.addEventListener('autoshop:seller-authorization-cleared', () => {
+    clearTimeout(sellerApprovalTimer);
+    commitApproved.hidden = true;
+    approvalForm.reset();
+    if (!consoleView.hidden) approvalFields.disabled = false;
+    approvalStatus.textContent = 'Approval consumed. Refresh the queue for the receipt.';
+  });
   commitApproved.addEventListener('click', async () => {
     if (!sellerAuthorization) return;
     commitApproved.disabled = true;
@@ -728,6 +738,13 @@ async function setupSellerAuthentication() {
     finally { commitApproved.disabled = false; }
   });
 
+  reset.addEventListener('click', async () => {
+    if (!confirm('Reset every synthetic order, cart, receipt, mandate, and seller session?')) return;
+    reset.disabled = true;
+    try { await resetDemoData(fetch); location.reload(); }
+    catch (error) { approvalStatus.textContent = error.message; reset.disabled = false; }
+  });
+
   logout.addEventListener('click', async () => {
     logout.disabled = true;
     try { await fetch('/api/seller/auth', { method: 'DELETE' }); } finally {
@@ -740,20 +757,25 @@ async function setupSellerAuthentication() {
 }
 
 if (typeof document !== 'undefined') {
-  const role = location.pathname === '/buyer' ? 'buyer' : 'seller';
-  document.querySelectorAll('[data-role-view]').forEach(view => { view.hidden = view.dataset.roleView !== role; });
-  document.title = `AutoShop ${role}`;
-  if (role === 'buyer') setupBuyerConfirmation();
-  else setupSellerAuthentication();
+  addEventListener('pagehide', () => {
+    buyerAuthorization = undefined;
+    sellerAuthorization = undefined;
+  }, { once: true });
+  const role = location.pathname === '/buyer' ? 'buyer' : location.pathname === '/seller' ? 'seller' : null;
+  if (!role) location.replace('/buyer');
+  else {
+    document.querySelectorAll('[data-role-view]').forEach(view => { view.hidden = view.dataset.roleView !== role; });
+    document.title = `AutoShop ${role}`;
+    if (role === 'buyer') setupBuyerConfirmation();
+    else setupSellerAuthentication();
 
-  const status = document.querySelector(role === 'buyer' ? '#buyer-status' : '#seller-status');
-  if (role === 'buyer' && typeof document.modelContext?.registerTool === 'function') {
-    registerRoleTools(document.modelContext, location.pathname, cleanup => addEventListener('pagehide', cleanup, { once: true }))
-      .then(cleanup => {
-        status.textContent = `${role === 'buyer' ? 3 : 4} WebMCP tools registered`;
-      })
-      .catch(() => { status.textContent = 'WebMCP registration failed'; });
-  } else if (role === 'buyer') {
-    status.textContent = 'WebMCP unavailable here';
+    const status = document.querySelector(role === 'buyer' ? '#buyer-status' : '#seller-status');
+    if (role === 'buyer' && typeof document.modelContext?.registerTool === 'function') {
+      registerRoleTools(document.modelContext, location.pathname, cleanup => addEventListener('pagehide', cleanup, { once: true }))
+        .then(() => { status.textContent = '3 WebMCP tools registered'; })
+        .catch(() => { status.textContent = 'WebMCP registration failed'; });
+    } else if (role === 'buyer') {
+      status.textContent = 'WebMCP unavailable here';
+    }
   }
 }

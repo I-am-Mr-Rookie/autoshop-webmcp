@@ -74,8 +74,8 @@ export const createHandler = (getRepository, options = {}) => async request => {
     if (cart?.error === 'QUANTITY') return validation();
     if (!cart || cart.error) return json({ ok: false, error: { code: 'NOT_FOUND', message: 'Buyer session or product was not found.' } }, 404, headers);
     return json({ ok: true, cart }, 200, headers);
-  } catch (error) {
-    console.error('buyer API failed:', error instanceof Error ? error.message : 'unknown error');
+  } catch {
+    console.error('buyer API failed');
     return json({ ok: false, error: { code: 'UNAVAILABLE', message: 'Buyer data is temporarily unavailable.' } }, 503);
   }
 };

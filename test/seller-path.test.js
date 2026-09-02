@@ -19,9 +19,9 @@ const order = {
   receipt: null
 };
 
-test('seller portal exposes queue, decision, approval, commit, receipt, and logout controls', async () => {
+test('seller portal exposes queue, decision, approval, commit, receipt, privileged reset, and logout controls', async () => {
   const html = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
-  for (const id of ['seller-orders', 'seller-refresh-orders', 'seller-approval', 'seller-commit-approved', 'seller-logout']) {
+  for (const id of ['seller-orders', 'seller-refresh-orders', 'seller-approval', 'seller-commit-approved', 'reset-demo', 'seller-logout']) {
     assert.match(html, new RegExp(`id=["']${id}["']`));
   }
 });

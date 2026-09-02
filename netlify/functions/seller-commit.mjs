@@ -46,8 +46,8 @@ export const createCommitHandler = (getRepository, options = {}) => async reques
     );
     if (result?.error) return error(result.error, errors[result.error]?.[1] ?? errors.UNAVAILABLE[1], errors[result.error]?.[0] ?? 503);
     return json({ ok: true, replayed: result.replayed, receipt: result.receipt }, result.replayed ? 200 : 201);
-  } catch (caught) {
-    console.error('approved action commit failed:', caught instanceof Error ? caught.message : 'unknown error');
+  } catch {
+    console.error('approved action commit failed');
     return error('UNAVAILABLE', errors.UNAVAILABLE[1], 503);
   }
 };

@@ -22,8 +22,8 @@ export const createSellerOrdersHandler = (getRepository, options = {}) => async 
     const seller = await authenticateSeller(request, repository, now);
     if (!seller) return json({ ok: false, error: { code: 'FORBIDDEN', message: 'Seller sign-in is required.' } }, 401);
     return json({ ok: true, orders: await repository.listSellerOrders(seller.tokenHash, now, limit) });
-  } catch (error) {
-    console.error('seller order list failed:', error instanceof Error ? error.message : 'unknown error');
+  } catch {
+    console.error('seller order list failed');
     return json({ ok: false, error: { code: 'UNAVAILABLE', message: 'Seller orders are temporarily unavailable.' } }, 503);
   }
 };

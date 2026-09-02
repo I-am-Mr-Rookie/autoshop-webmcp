@@ -3,11 +3,13 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import * as app from '../public/app.js';
 
-test('buyer portal exposes catalogue, cart, submission, status, and reset controls', async () => {
+test('buyer portal exposes catalogue, cart, submission, and status without privileged reset', async () => {
   const html = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
-  for (const id of ['product-search', 'buyer-products', 'buyer-cart', 'buyer-submit-order', 'buyer-order-status', 'reset-demo']) {
+  for (const id of ['product-search', 'buyer-products', 'buyer-cart', 'buyer-submit-order', 'buyer-order-status']) {
     assert.match(html, new RegExp(`id=["']${id}["']`));
   }
+  const buyer = html.slice(html.indexOf('data-role-view="buyer"'));
+  assert.doesNotMatch(buyer, /id="reset-demo"/);
 });
 
 test('buyer WebMCP tools use the buyer APIs and return bounded results', async () => {

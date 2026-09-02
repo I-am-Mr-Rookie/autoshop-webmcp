@@ -62,8 +62,8 @@ export const createConfirmationHandler = (getRepository, options = {}) => async 
       confirm_token: rawToken,
       confirmation_expires_at: confirmation.expires_at
     });
-  } catch (error) {
-    console.error('buyer confirmation failed:', error instanceof Error ? error.message : 'unknown error');
+  } catch {
+    console.error('buyer confirmation failed');
     return json({ ok: false, error: { code: 'UNAVAILABLE', message: 'Buyer confirmation is temporarily unavailable.' } }, 503);
   }
 };

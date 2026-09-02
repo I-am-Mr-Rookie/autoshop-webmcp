@@ -52,8 +52,8 @@ export const createMandateHandler = (getRepository, options = {}) => async reque
     if (result?.error === 'STALE') return error('STALE', 'The mandate changed. Review the current limits and try again.', 409, { mandate: result.mandate });
     if (result?.error === 'UNAVAILABLE') return error('UNAVAILABLE', 'Seller mandate is temporarily unavailable.', 503);
     return json({ ok: true, ...result });
-  } catch (caught) {
-    console.error('seller mandate failed:', caught instanceof Error ? caught.message : 'unknown error');
+  } catch {
+    console.error('seller mandate failed');
     return error('UNAVAILABLE', 'Seller mandate is temporarily unavailable.', 503);
   }
 };

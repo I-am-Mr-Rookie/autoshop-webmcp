@@ -835,10 +835,16 @@ export const createPostgresRepository = db => ({
         UPDATE pending_actions SET state = 'committed', version = version + 1
         WHERE order_id = $1 AND state = 'eligible'
       `, [orderId]);
-      for (const [productId, requested] of quantities) await client.query(`
-        UPDATE products SET stock = stock - $2, version = version + 1
-        WHERE id = $1 AND stock - $2 >= $3
-      `, [productId, requested, mandate.min_stock_remaining]);
+      for (const [productId, requested] of quantities) {
+        const changed = await client.query(`
+          UPDATE products SET stock = stock - $2, version = version + 1
+          WHERE id = $1 AND stock - $2 >= $3
+        `, [productId, requested, mandate.min_stock_remaining]);
+        if (changed.rowCount !== 1) {
+          await client.query('ROLLBACK');
+          return { error: 'STALE' };
+        }
+      }
       const receiptId = `receipt-${randomUUID()}`;
       const body = {
         receipt_id: receiptId,

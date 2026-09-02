@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createApprovalHandler, hashApprovalToken } from '../netlify/functions/seller-approval.mjs';
 import { createCommitHandler } from '../netlify/functions/seller-commit.mjs';
-import { COMMIT_ACTION_TOOL, requestSellerApproval } from '../public/app.js';
+import { COMMIT_ACTION_TOOL, getSellerAuthorization, requestSellerApproval } from '../public/app.js';
 
 const sellerToken = 'a'.repeat(64);
 const approvalToken = 'b'.repeat(64);
@@ -154,14 +154,12 @@ test('seller page requires a visible confirmation and commit_action uses the ser
     return new Response(JSON.stringify({ ok: true, replayed: commitRequests.length > 1, receipt: { receipt_id: 'receipt-1' } }), { status: commitRequests.length > 1 ? 200 : 201 });
   };
   try {
-    const toolInput = { action_id: 'pending-1', confirm_token: 'page_authorization', idempotency_key: 'commit-key-1' };
+    const toolInput = { action_id: 'pending-1', confirm_token: 'caller_authorization', idempotency_key: 'commit-key-1' };
     const committed = await COMMIT_ACTION_TOOL.execute(toolInput);
-    const replayed = await COMMIT_ACTION_TOOL.execute(toolInput);
     assert.equal(committed.ok, true);
-    assert.equal(replayed.replayed, true);
     assert.equal(commitRequests[0].url, '/api/seller/commit');
-    assert.equal(JSON.parse(commitRequests[0].options.body).confirm_token, approvalToken);
-    assert.equal(JSON.parse(commitRequests[1].options.body).confirm_token, approvalToken);
+    assert.equal(JSON.parse(commitRequests[0].options.body).confirm_token, 'caller_authorization');
+    assert.equal(getSellerAuthorization(), undefined);
   } finally {
     globalThis.document = originalDocument;
     globalThis.fetch = originalFetch;

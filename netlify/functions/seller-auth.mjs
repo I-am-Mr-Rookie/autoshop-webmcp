@@ -97,8 +97,8 @@ export const createHandler = (getRepository, options = {}) => async request => {
     return json({ ok: true, username: seller.username, expires_at: expiresAt.toISOString() }, 200, {
       'set-cookie': `${COOKIE}=${token}; Max-Age=${SESSION_SECONDS}; Path=/; HttpOnly; Secure; SameSite=Strict`
     });
-  } catch (caught) {
-    console.error('seller authentication failed:', caught instanceof Error ? caught.message : 'unknown error');
+  } catch {
+    console.error('seller authentication failed');
     return error('UNAVAILABLE', 'Seller authentication is temporarily unavailable.', 503);
   }
 };
