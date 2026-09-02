@@ -188,21 +188,90 @@ async function setupBuyerConfirmation() {
   });
 }
 
+async function setupSellerAuthentication() {
+  const form = document.querySelector('#seller-login');
+  const consoleView = document.querySelector('#seller-console');
+  const status = document.querySelector('#seller-status');
+  const loginStatus = document.querySelector('#seller-login-status');
+  const logout = document.querySelector('#seller-logout');
+  let cleanup = () => {};
+  let expiryTimer;
+
+  const deactivate = message => {
+    cleanup();
+    cleanup = () => {};
+    clearTimeout(expiryTimer);
+    form.hidden = false;
+    consoleView.hidden = true;
+    status.textContent = message;
+  };
+
+  const activate = async session => {
+    form.hidden = true;
+    consoleView.hidden = false;
+    if (typeof document.modelContext?.registerTool === 'function') {
+      cleanup = await registerRoleTools(document.modelContext, '/seller', handler => addEventListener('pagehide', handler, { once: true }));
+      status.textContent = 'Signed in · 4 WebMCP tools registered';
+    } else status.textContent = 'Signed in · WebMCP unavailable here';
+    expiryTimer = setTimeout(() => deactivate('Session expired · sign in again'), Math.max(0, new Date(session.expires_at) - Date.now()));
+  };
+
+  try {
+    const response = await fetch('/api/seller/auth');
+    if (response.ok) await activate(await response.json());
+    else deactivate('Sign in required · seller tools unavailable');
+  } catch {
+    deactivate('Seller authentication unavailable');
+  }
+
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const button = form.querySelector('button');
+    button.disabled = true;
+    loginStatus.textContent = 'Signing in…';
+    try {
+      const response = await fetch('/api/seller/auth', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(Object.fromEntries(new FormData(form)))
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error?.message ?? 'Seller sign-in failed.');
+      form.reset();
+      loginStatus.textContent = '';
+      await activate(result);
+    } catch (error) {
+      loginStatus.textContent = error.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  logout.addEventListener('click', async () => {
+    logout.disabled = true;
+    try { await fetch('/api/seller/auth', { method: 'DELETE' }); } finally {
+      deactivate('Logged out · seller tools removed');
+      logout.disabled = false;
+    }
+  });
+  document.querySelector('#leave-seller')?.addEventListener('click', () => cleanup(), { once: true });
+}
+
 if (typeof document !== 'undefined') {
   const role = location.pathname === '/buyer' ? 'buyer' : 'seller';
   document.querySelectorAll('[data-role-view]').forEach(view => { view.hidden = view.dataset.roleView !== role; });
   document.title = `AutoShop ${role}`;
   if (role === 'buyer') setupBuyerConfirmation();
+  else setupSellerAuthentication();
 
   const status = document.querySelector(role === 'buyer' ? '#buyer-status' : '#seller-status');
-  if (typeof document.modelContext?.registerTool === 'function') {
+  if (role === 'buyer' && typeof document.modelContext?.registerTool === 'function') {
     registerRoleTools(document.modelContext, location.pathname, cleanup => addEventListener('pagehide', cleanup, { once: true }))
       .then(cleanup => {
         status.textContent = `${role === 'buyer' ? 3 : 4} WebMCP tools registered`;
-        document.querySelector('#leave-seller')?.addEventListener('click', cleanup, { once: true });
       })
       .catch(() => { status.textContent = 'WebMCP registration failed'; });
-  } else {
+  } else if (role === 'buyer') {
     status.textContent = 'WebMCP unavailable here';
   }
 }

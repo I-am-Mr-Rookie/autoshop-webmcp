@@ -3,8 +3,10 @@ import assert from 'node:assert/strict';
 import { createSeedRecords, resetDemoData } from '../persistence.js';
 import { createHandler } from '../netlify/functions/demo-data.mjs';
 
+const sellerPasswordHash = `scrypt$${'00'.repeat(16)}$${'00'.repeat(64)}`;
+
 test('seeds every required record type and resets through one repository transaction', async () => {
-  const records = createSeedRecords();
+  const records = createSeedRecords(sellerPasswordHash);
   assert.deepEqual(Object.keys(records), [
     'products', 'buyerSessions', 'carts', 'orders', 'mandates',
     'pendingActions', 'approvalTokens', 'receipts', 'sellerUsers'
@@ -15,14 +17,14 @@ test('seeds every required record type and resets through one repository transac
   assert.ok(Object.values(records).flat().every(record => record.version === 1));
 
   let replaced;
-  const result = await resetDemoData({ replace: async value => { replaced = value; } });
+  const result = await resetDemoData({ replace: async value => { replaced = value; } }, sellerPasswordHash);
   assert.deepEqual(replaced, records);
   assert.deepEqual(result, { ok: true, products: 3, mandateVersion: 1, sellerUsers: 1 });
 });
 
 test('reset endpoint requires an explicit confirmation and returns a bounded result', async () => {
   let resets = 0;
-  const handler = createHandler(async () => ({ replace: async () => { resets += 1; } }));
+  const handler = createHandler(async () => ({ replace: async () => { resets += 1; } }), { passwordHash: sellerPasswordHash });
 
   const rejected = await handler(new Request('https://example.test/api/demo-data/reset', {
     method: 'POST', body: JSON.stringify({ confirm: 'wrong' })

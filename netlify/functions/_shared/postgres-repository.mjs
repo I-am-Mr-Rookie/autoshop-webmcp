@@ -27,8 +27,8 @@ export const createPostgresRepository = db => ({
       );
       const seller = records.sellerUsers[0];
       await client.query(
-        'INSERT INTO seller_users (id, username, status, version) VALUES ($1, $2, $3, $4)',
-        [seller.id, seller.username, seller.status, seller.version]
+        'INSERT INTO seller_users (id, username, password_hash, status, version) VALUES ($1, $2, $3, $4, $5)',
+        [seller.id, seller.username, seller.passwordHash, seller.status, seller.version]
       );
       await client.query('COMMIT');
     } catch (error) {
@@ -58,6 +58,64 @@ export const createPostgresRepository = db => ({
     await db.pool.query('DELETE FROM buyer_sessions WHERE id = $1 AND expires_at <= $2', [id, now]);
     const { rows: [session] } = await db.pool.query('SELECT id, mode, expires_at FROM buyer_sessions WHERE id = $1', [id]);
     return session ?? null;
+  },
+
+  async findSeller(username) {
+    const { rows: [seller] } = await db.pool.query(`
+      SELECT id, username, password_hash, status, failed_login_count, locked_until
+      FROM seller_users WHERE username = $1
+    `, [username]);
+    return seller ?? null;
+  },
+
+  async recordSellerLoginFailure(id, now, limit, lockedUntil) {
+    const client = await db.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows: [seller] } = await client.query(
+        'SELECT failed_login_count, locked_until FROM seller_users WHERE id = $1 FOR UPDATE', [id]
+      );
+      if (!seller) {
+        await client.query('ROLLBACK');
+        return null;
+      }
+      const count = seller.locked_until && new Date(seller.locked_until) <= now ? 1 : seller.failed_login_count + 1;
+      const nextLock = count >= limit ? lockedUntil : null;
+      const { rows: [result] } = await client.query(`
+        UPDATE seller_users SET failed_login_count = $2, locked_until = $3, version = version + 1
+        WHERE id = $1 RETURNING locked_until
+      `, [id, count, nextLock]);
+      await client.query('COMMIT');
+      return result;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  },
+
+  async createSellerSession(id, tokenHash, expiresAt) {
+    await db.pool.query(`
+      UPDATE seller_users SET session_token_hash = $2, session_expires_at = $3,
+        failed_login_count = 0, locked_until = NULL, version = version + 1
+      WHERE id = $1 AND status = 'active'
+    `, [id, tokenHash, expiresAt]);
+  },
+
+  async findSellerSession(tokenHash, now) {
+    const { rows: [seller] } = await db.pool.query(`
+      SELECT username, session_expires_at AS expires_at FROM seller_users
+      WHERE session_token_hash = $1 AND session_expires_at > $2 AND status = 'active'
+    `, [tokenHash, now]);
+    return seller ?? null;
+  },
+
+  async deleteSellerSession(tokenHash) {
+    await db.pool.query(`
+      UPDATE seller_users SET session_token_hash = NULL, session_expires_at = NULL, version = version + 1
+      WHERE session_token_hash = $1
+    `, [tokenHash]);
   },
 
   async listProducts(query, limit) {
