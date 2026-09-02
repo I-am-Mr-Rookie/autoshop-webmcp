@@ -39,7 +39,7 @@
       <header>
         <div>
           <h1>Seller mandate.</h1>
-          <p>This synthetic policy is visible through one read-only seller tool. Leaving this portal removes that tool.</p>
+          <p>This synthetic policy is visible through four seller tools. Leaving this portal removes them.</p>
           <p><a id="leave-seller" href="/buyer">Leave seller portal</a></p>
         </div>
         <output class="status" id="seller-status" aria-live="polite">Checking WebMCP…</output>
@@ -51,18 +51,18 @@
         <div><dt>Stock remaining</dt><dd>2</dd></div>
         <div><dt>Version</dt><dd>1</dd></div>
       </dl>
-      <footer>Seller tool: get_mandate · input: empty object only · removed on exit</footer>
+      <footer>Seller tools: 4 role-scoped contracts · strict inputs · removed on exit</footer>
     </section>
 
     <section data-role-view="buyer" hidden>
       <header>
         <div>
           <h1>Buyer portal.</h1>
-          <p>Shopping tools arrive in a later run. Seller policy tools stay outside this route.</p>
+          <p>Three buyer tool contracts are available here. Seller policy tools stay outside this route.</p>
         </div>
         <output class="status" id="buyer-status" aria-live="polite">Checking isolation…</output>
       </header>
-      <footer>Seller tools: unavailable · buyer tools: not implemented yet</footer>
+      <footer>Buyer tools: 3 role-scoped contracts · seller tools: unavailable</footer>
     </section>
   </main>
   <script type="module" src="/app.js"></script>

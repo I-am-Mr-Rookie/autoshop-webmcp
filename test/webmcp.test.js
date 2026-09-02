@@ -15,29 +15,35 @@ test('get_mandate is strict, bounded, read-only, and cleaned up', async () => {
   assert.deepEqual(registered.tool.annotations, { readOnlyHint: true, untrustedContentHint: false });
   assert.deepEqual(await registered.tool.execute({}), app.MANDATE);
   assert.deepEqual(app.MANDATE_OUTPUT_SCHEMA.required, Object.keys(app.MANDATE));
-  await assert.rejects(() => registered.tool.execute({ extra: true }), /empty object only/);
+  assert.deepEqual(await registered.tool.execute({ extra: true }), {
+    ok: false,
+    error: { code: 'VALIDATION', message: 'Input does not match the tool contract.', retryable: false }
+  });
   assert.equal(registered.options.signal.aborted, false);
   cleanup();
   assert.equal(registered.options.signal.aborted, true);
   unregister();
 });
 
-test('seller registration is absent from buyer and aborts on exit', async () => {
+test('role registration stays isolated and aborts on exit', async () => {
   assert.equal(typeof app.registerRoleTools, 'function');
 
-  let buyerRegistrations = 0;
-  const buyerStop = await app.registerRoleTools({ registerTool: async () => { buyerRegistrations += 1; } }, '/buyer', () => {});
-  assert.equal(buyerRegistrations, 0);
+  const buyerTools = [];
+  const buyerStop = await app.registerRoleTools({ registerTool: async tool => { buyerTools.push(tool.name); } }, '/buyer', () => {});
+  assert.deepEqual(buyerTools, ['browse_products', 'manage_cart', 'submit_order']);
+  assert.ok(!buyerTools.includes('get_mandate'));
   buyerStop();
 
+  const sellerTools = [];
   let registered;
   let cleanup;
   const sellerStop = await app.registerRoleTools(
-    { registerTool: async (tool, options) => { registered = { tool, options }; } },
+    { registerTool: async (tool, options) => { sellerTools.push(tool.name); registered = { tool, options }; } },
     '/seller',
     handler => { cleanup = handler; }
   );
-  assert.equal(registered.tool.name, 'get_mandate');
+  assert.deepEqual(sellerTools, ['get_mandate', 'list_orders', 'accept_order', 'commit_action']);
+  assert.ok(!sellerTools.includes('browse_products'));
   assert.equal(registered.options.signal.aborted, false);
   sellerStop();
   assert.equal(registered.options.signal.aborted, true);
