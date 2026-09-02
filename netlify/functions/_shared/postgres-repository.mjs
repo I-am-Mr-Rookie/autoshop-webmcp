@@ -450,7 +450,19 @@ export const createPostgresRepository = db => ({
         await client.query('ROLLBACK');
         return { error: 'NOT_FOUND' };
       }
-      if (!['requested', 'eligible'].includes(order.status)) {
+      const { rows: [pendingReplay] } = await client.query(`
+        SELECT id AS action_id, order_id, quantity, state, version
+        FROM pending_actions WHERE idempotency_key = $1
+      `, [idempotencyKey]);
+      if (pendingReplay) {
+        if (pendingReplay.order_id !== orderId || pendingReplay.quantity !== quantity) {
+          await client.query('ROLLBACK');
+          return { error: 'CONFLICT' };
+        }
+        await client.query('COMMIT');
+        return { error: 'APPROVAL_REQUIRED', pendingAction: pendingReplay, replayed: true };
+      }
+      if (!['requested', 'pending', 'eligible'].includes(order.status)) {
         await client.query('ROLLBACK');
         return { error: 'STALE' };
       }
@@ -475,8 +487,62 @@ export const createPostgresRepository = db => ({
       `, [productIds]);
       const mandate = mandateResult(mandateRow);
       if (!isOrderEligible({ ...order, quantity }, products, mandate)) {
-        await client.query('ROLLBACK');
-        return { error: 'APPROVAL_REQUIRED' };
+        const { rows: [current] } = await client.query(`
+          SELECT id, order_id, mandate_version, quantity, snapshot, state, version, idempotency_key
+          FROM pending_actions
+          WHERE order_id = $1 AND state IN ('pending', 'eligible', 'approved')
+          FOR UPDATE
+        `, [orderId]);
+        const currentSnapshot = current
+          && current.mandate_version === mandate.mandate_version
+          && current.quantity === quantity
+          && current.snapshot.order_version === order.version
+          && JSON.stringify(current.snapshot.items) === JSON.stringify(order.items)
+          && JSON.stringify(current.snapshot.products) === JSON.stringify(products);
+        if (currentSnapshot) {
+          if (current.idempotency_key && current.idempotency_key !== idempotencyKey) {
+            await client.query('ROLLBACK');
+            return { error: 'CONFLICT' };
+          }
+          const { rows: [pendingAction] } = current.idempotency_key ? { rows: [current] } : await client.query(`
+            UPDATE pending_actions SET idempotency_key = $2, version = version + 1
+            WHERE id = $1
+            RETURNING id AS action_id, order_id, quantity, state, version
+          `, [current.id, idempotencyKey]);
+          await client.query('COMMIT');
+          return { error: 'APPROVAL_REQUIRED', pendingAction, replayed: true };
+        }
+        const { rows: [pendingOrder] } = order.status === 'pending' ? { rows: [{ version: order.version }] } : await client.query(`
+          UPDATE orders SET status = 'pending', version = version + 1
+          WHERE id = $1 AND status IN ('requested', 'eligible') RETURNING version
+        `, [orderId]);
+        if (!pendingOrder) {
+          await client.query('ROLLBACK');
+          const { rows: [winner] } = await db.pool.query(`
+            SELECT id AS action_id, order_id, quantity, state, version
+            FROM pending_actions WHERE idempotency_key = $1
+          `, [idempotencyKey]);
+          return winner?.order_id === orderId && winner.quantity === quantity
+            ? { error: 'APPROVAL_REQUIRED', pendingAction: winner, replayed: true }
+            : { error: 'STALE' };
+        }
+        if (current) {
+          await client.query("UPDATE pending_actions SET state = 'replaced', version = version + 1 WHERE id = $1", [current.id]);
+          await client.query("UPDATE approval_tokens SET state = 'invalidated', version = version + 1 WHERE action_id = $1 AND state = 'active'", [current.id]);
+        }
+        const snapshot = {
+          mandate_version: mandate.mandate_version,
+          order_version: pendingOrder.version,
+          items: order.items,
+          products
+        };
+        const { rows: [pendingAction] } = await client.query(`
+          INSERT INTO pending_actions (id, order_id, mandate_version, quantity, snapshot, state, version, idempotency_key)
+          VALUES ($1, $2, $3, $4, $5::jsonb, 'pending', 1, $6)
+          RETURNING id AS action_id, order_id, quantity, state, version
+        `, [`pending-${randomUUID()}`, orderId, mandate.mandate_version, quantity, JSON.stringify(snapshot), idempotencyKey]);
+        await client.query('COMMIT');
+        return { error: 'APPROVAL_REQUIRED', pendingAction, replayed: false };
       }
 
       const accepted = await client.query(`
