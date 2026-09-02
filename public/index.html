@@ -16,11 +16,6 @@
     h1 { margin: 0; font-family: "DM Serif Display", Georgia, serif; font-size: clamp(3rem, 9vw, 6.4rem); font-weight: 400; line-height: .9; letter-spacing: -.04em; }
     header p { max-width: 42ch; margin: 20px 0 0; font-size: 1.05rem; line-height: 1.6; }
     .status { font-family: "DM Mono", Consolas, monospace; font-size: .78rem; color: #1e40af; border: 1px solid currentColor; padding: 8px 10px; white-space: nowrap; }
-    dl { display: grid; grid-template-columns: repeat(5, 1fr); margin: 0; }
-    dl div { padding: 24px; border-right: 1px solid #a9b7c4; }
-    dl div:last-child { border-right: 0; }
-    dt { min-height: 3em; font: .72rem/1.4 "DM Mono", Consolas, monospace; text-transform: uppercase; color: #526474; }
-    dd { margin: 12px 0 0; font: 600 clamp(1.35rem, 3vw, 2.2rem)/1 "DM Mono", Consolas, monospace; color: #047857; }
     footer { padding: 18px 24px; border-top: 1px solid #a9b7c4; font: .78rem/1.5 "DM Mono", Consolas, monospace; color: #526474; }
     .buyer-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, .85fr); }
     .review, form { padding: clamp(24px, 4vw, 40px); }
@@ -38,17 +33,21 @@
     .mode-option span { font-weight: 700; }
     .mode-option small { grid-column: 2; color: #526474; line-height: 1.4; }
     .field { display: grid; gap: 7px; margin-top: 14px; font: .76rem/1.4 "DM Mono", Consolas, monospace; }
-    input[type="text"], input[type="email"], input[type="password"] { width: 100%; border: 1px solid #8295a5; background: #fff; color: #1a242e; padding: 11px 12px; font: 1rem/1.4 Literata, Georgia, serif; }
+    input[type="text"], input[type="email"], input[type="password"], input[type="number"] { width: 100%; border: 1px solid #8295a5; background: #fff; color: #1a242e; padding: 11px 12px; font: 1rem/1.4 Literata, Georgia, serif; }
     button { width: 100%; border: 1px solid #047857; background: #047857; color: #fff; padding: 13px 16px; font: 600 .82rem/1.2 "DM Mono", Consolas, monospace; cursor: pointer; transition: background 120ms cubic-bezier(.2,.8,.2,1); }
     button:hover { background: #065f46; }
     button:disabled { cursor: not-allowed; opacity: .55; }
     .confirmation-status { display: block; min-height: 3em; margin-top: 14px; color: #1e40af; font: .78rem/1.5 "DM Mono", Consolas, monospace; }
     .seller-login { max-width: 440px; border-right: 1px solid #a9b7c4; }
     .seller-login p { color: #526474; line-height: 1.55; }
-    .seller-console button { width: auto; margin: 24px; background: transparent; color: #047857; }
+    .seller-login input { padding-right: 48px; }
+    .seller-login button { margin-top: 20px; }
+    .mandate-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .mandate-version { color: #526474; font: .78rem/1.5 "DM Mono", Consolas, monospace; }
+    #seller-logout { width: auto; margin: 24px; background: transparent; color: #047857; }
     [hidden] { display: none !important; }
     :focus-visible { outline: 3px solid #1e40af; outline-offset: 3px; }
-    @media (max-width: 720px) { header { grid-template-columns: 1fr; } dl { grid-template-columns: 1fr 1fr; } dl div { border-bottom: 1px solid #a9b7c4; } .buyer-grid { grid-template-columns: 1fr; } .review { border-right: 0; border-bottom: 1px solid #a9b7c4; } }
+    @media (max-width: 720px) { header { grid-template-columns: 1fr; } .mandate-grid { grid-template-columns: 1fr; } .buyer-grid { grid-template-columns: 1fr; } .review { border-right: 0; border-bottom: 1px solid #a9b7c4; } }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
   </style>
 </head>
@@ -77,13 +76,20 @@
         <output class="confirmation-status" id="seller-login-status" aria-live="polite"></output>
       </form>
       <div class="seller-console" id="seller-console" hidden>
-        <dl aria-label="Current mandate limits">
-          <div><dt>Items per order</dt><dd>5</dd></div>
-          <div><dt>Order total</dt><dd>$100</dd></div>
-          <div><dt>Discount</dt><dd>10%</dd></div>
-          <div><dt>Stock remaining</dt><dd>2</dd></div>
-          <div><dt>Version</dt><dd>1</dd></div>
-        </dl>
+        <form id="seller-mandate" aria-busy="false">
+          <fieldset id="seller-mandate-fields" disabled>
+            <legend>Edit mandate limits</legend>
+            <div class="mandate-grid">
+              <label class="field">Items per order<input name="max_items_per_order" type="number" min="1" max="20" step="1" required></label>
+              <label class="field">Order total (USD)<input name="max_total_dollars" type="number" min="0" max="1000" step="0.01" required></label>
+              <label class="field">Discount percent<input name="max_discount_percent" type="number" min="0" max="100" step="1" required></label>
+              <label class="field">Stock remaining<input name="min_stock_remaining" type="number" min="0" max="100" step="1" required></label>
+            </div>
+            <p class="mandate-version">Current version <output id="mandate-version">—</output></p>
+            <button type="submit">Save mandate</button>
+            <output class="confirmation-status" id="mandate-status" aria-live="polite" aria-atomic="true"></output>
+          </fieldset>
+        </form>
         <button id="seller-logout" type="button">Log out</button>
         <footer>Seller tools: 4 role-scoped contracts · strict inputs · removed on logout, expiry, or exit</footer>
       </div>

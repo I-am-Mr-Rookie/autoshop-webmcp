@@ -36,6 +36,14 @@ const readToken = request => request.headers.get('cookie')
   .map(part => part.trim().split('='))
   .find(([name, value]) => name === COOKIE && /^[a-f0-9]{64}$/.test(value ?? ''))?.[1];
 
+export const authenticateSeller = async (request, repository, now) => {
+  const token = readToken(request);
+  if (!token) return null;
+  const tokenHash = hashSessionToken(token);
+  const session = await repository.findSellerSession(tokenHash, now);
+  return session && { ...session, tokenHash };
+};
+
 const readLogin = async request => {
   let input;
   try { input = await request.json(); } catch { return null; }
@@ -55,7 +63,7 @@ export const createHandler = (getRepository, options = {}) => async request => {
     const rawToken = readToken(request);
 
     if (method === 'GET') {
-      const session = rawToken && await repository.findSellerSession(hashSessionToken(rawToken), now);
+      const session = await authenticateSeller(request, repository, now);
       return session
         ? json({ ok: true, username: session.username, expires_at: new Date(session.expires_at).toISOString() })
         : error('FORBIDDEN', 'Seller sign-in is required.', 401);

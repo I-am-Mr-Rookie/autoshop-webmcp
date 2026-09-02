@@ -25,6 +25,25 @@ test('get_mandate is strict, bounded, read-only, and cleaned up', async () => {
   unregister();
 });
 
+test('get_mandate refreshes through the authenticated seller API in a browser', async () => {
+  const originalDocument = globalThis.document;
+  const originalFetch = globalThis.fetch;
+  const live = { ...app.MANDATE, mandate_version: 2, max_items_per_order: 3 };
+  let requested;
+  globalThis.document = {};
+  globalThis.fetch = async url => {
+    requested = url;
+    return new Response(JSON.stringify({ ok: true, mandate: live }));
+  };
+  try {
+    assert.deepEqual(await app.GET_MANDATE_TOOL.execute({}), live);
+    assert.equal(requested, '/api/seller/mandate');
+  } finally {
+    globalThis.document = originalDocument;
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('role registration stays isolated and aborts on exit', async () => {
   assert.equal(typeof app.registerRoleTools, 'function');
 

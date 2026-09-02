@@ -5,19 +5,19 @@ export const MANDATE = Object.freeze({
   max_total_cents: 10000,
   max_discount_percent: 10,
   min_stock_remaining: 2,
-  status: 'stub'
+  status: 'active'
 });
 
 export const MANDATE_OUTPUT_SCHEMA = Object.freeze({
   type: 'object',
   properties: {
-    mandate_version: { type: 'integer', const: 1 },
+    mandate_version: { type: 'integer', minimum: 1 },
     currency: { type: 'string', const: 'USD' },
     max_items_per_order: { type: 'integer', minimum: 1, maximum: 20 },
     max_total_cents: { type: 'integer', minimum: 0, maximum: 100000 },
     max_discount_percent: { type: 'integer', minimum: 0, maximum: 100 },
     min_stock_remaining: { type: 'integer', minimum: 0, maximum: 100 },
-    status: { type: 'string', const: 'stub' }
+    status: { type: 'string', const: 'active' }
   },
   required: Object.keys(MANDATE),
   additionalProperties: false
@@ -82,12 +82,29 @@ export const BUYER_TOOLS = Object.freeze([
   tool('submit_order', 'Submit order', 'Submit one synthetic order only with a page-minted buyer confirmation token. This is consequential and never processes payment.', mutating)
 ]);
 
+let currentMandate = MANDATE;
+
 export const GET_MANDATE_TOOL = tool(
   'get_mandate',
   'Get seller mandate',
   'Read the current synthetic AutoShop seller mandate and its bounded numerical limits. This tool never changes state.',
   readOnly,
-  () => ({ ...MANDATE })
+  async () => {
+    if (typeof document === 'undefined') return { ...currentMandate };
+    try {
+      const response = await fetch('/api/seller/mandate');
+      const result = await response.json();
+      if (!response.ok) return failure(
+        result.error?.code ?? 'UNAVAILABLE',
+        result.error?.message ?? 'Seller mandate is temporarily unavailable.',
+        response.status >= 500
+      );
+      currentMandate = result.mandate;
+      return { ...currentMandate };
+    } catch {
+      return failure('UNAVAILABLE', 'Seller mandate is temporarily unavailable.', true);
+    }
+  }
 );
 
 export const SELLER_TOOLS = Object.freeze([
@@ -191,16 +208,48 @@ async function setupBuyerConfirmation() {
 async function setupSellerAuthentication() {
   const form = document.querySelector('#seller-login');
   const consoleView = document.querySelector('#seller-console');
+  const mandateForm = document.querySelector('#seller-mandate');
+  const mandateFields = document.querySelector('#seller-mandate-fields');
+  const mandateVersion = document.querySelector('#mandate-version');
+  const mandateStatus = document.querySelector('#mandate-status');
   const status = document.querySelector('#seller-status');
   const loginStatus = document.querySelector('#seller-login-status');
   const logout = document.querySelector('#seller-logout');
   let cleanup = () => {};
   let expiryTimer;
 
+  const renderMandate = mandate => {
+    currentMandate = mandate;
+    mandateForm.elements.max_items_per_order.value = mandate.max_items_per_order;
+    mandateForm.elements.max_total_dollars.value = (mandate.max_total_cents / 100).toFixed(2);
+    mandateForm.elements.max_discount_percent.value = mandate.max_discount_percent;
+    mandateForm.elements.min_stock_remaining.value = mandate.min_stock_remaining;
+    mandateVersion.value = mandate.mandate_version;
+  };
+
+  const loadMandate = async () => {
+    mandateFields.disabled = true;
+    mandateStatus.textContent = 'Loading mandate…';
+    const response = await fetch('/api/seller/mandate');
+    const result = await response.json();
+    if (response.status === 401) return deactivate('Session expired · sign in again');
+    if (!response.ok) throw new Error(result.error?.message ?? 'Seller mandate unavailable.');
+    renderMandate(result.mandate);
+    mandateFields.disabled = false;
+    mandateStatus.textContent = `Mandate v${result.mandate.mandate_version} ready.`;
+    return true;
+  };
+
   const deactivate = message => {
     cleanup();
     cleanup = () => {};
     clearTimeout(expiryTimer);
+    currentMandate = MANDATE;
+    mandateForm.reset();
+    mandateFields.disabled = true;
+    mandateForm.setAttribute('aria-busy', 'false');
+    mandateVersion.value = '—';
+    mandateStatus.textContent = '';
     form.hidden = false;
     consoleView.hidden = true;
     status.textContent = message;
@@ -209,11 +258,18 @@ async function setupSellerAuthentication() {
   const activate = async session => {
     form.hidden = true;
     consoleView.hidden = false;
+    expiryTimer = setTimeout(() => deactivate('Session expired · sign in again'), Math.max(0, new Date(session.expires_at) - Date.now()));
+    try {
+      if (!await loadMandate()) return;
+    } catch (error) {
+      status.textContent = 'Signed in · mandate unavailable';
+      mandateStatus.textContent = error.message;
+      return;
+    }
     if (typeof document.modelContext?.registerTool === 'function') {
       cleanup = await registerRoleTools(document.modelContext, '/seller', handler => addEventListener('pagehide', handler, { once: true }));
       status.textContent = 'Signed in · 4 WebMCP tools registered';
     } else status.textContent = 'Signed in · WebMCP unavailable here';
-    expiryTimer = setTimeout(() => deactivate('Session expired · sign in again'), Math.max(0, new Date(session.expires_at) - Date.now()));
   };
 
   try {
@@ -244,6 +300,44 @@ async function setupSellerAuthentication() {
       loginStatus.textContent = error.message;
     } finally {
       button.disabled = false;
+    }
+  });
+
+  mandateForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    if (!mandateForm.reportValidity()) return;
+    mandateFields.disabled = true;
+    mandateForm.setAttribute('aria-busy', 'true');
+    mandateStatus.textContent = 'Saving mandate…';
+    try {
+      const values = Object.fromEntries(new FormData(mandateForm));
+      const response = await fetch('/api/seller/mandate', {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          mandate_version: currentMandate.mandate_version,
+          max_items_per_order: Number(values.max_items_per_order),
+          max_total_cents: Math.round(Number(values.max_total_dollars) * 100),
+          max_discount_percent: Number(values.max_discount_percent),
+          min_stock_remaining: Number(values.min_stock_remaining)
+        })
+      });
+      const result = await response.json();
+      if (response.status === 401) return deactivate('Session expired · sign in again');
+      if (response.status === 409) {
+        if (result.mandate) renderMandate(result.mandate);
+        else await loadMandate();
+        mandateStatus.textContent = `Mandate changed elsewhere. Current v${currentMandate.mandate_version} loaded; review and save again.`;
+        return;
+      }
+      if (!response.ok) throw new Error(result.error?.message ?? 'Mandate update unavailable. Try again.');
+      renderMandate(result.mandate);
+      mandateStatus.textContent = `Mandate v${result.mandate.mandate_version} saved. ${result.re_evaluated} pending orders re-evaluated; ${result.eligible} now eligible. No stock changed.`;
+    } catch (error) {
+      mandateStatus.textContent = error.message;
+    } finally {
+      if (!consoleView.hidden) mandateFields.disabled = false;
+      mandateForm.setAttribute('aria-busy', 'false');
     }
   });
 

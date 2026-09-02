@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto';
+
 const cartResult = async (client, sessionId) => {
   const { rows: [cart] } = await client.query(`
     SELECT c.items, c.version, COALESCE((
@@ -8,6 +10,33 @@ const cartResult = async (client, sessionId) => {
     FROM carts c WHERE c.buyer_session_id = $1
   `, [sessionId]);
   return cart ?? null;
+};
+
+const mandateResult = row => row && ({
+  mandate_version: row.version,
+  currency: 'USD',
+  max_items_per_order: row.max_items,
+  max_total_cents: row.max_total_cents,
+  max_discount_percent: row.max_discount_percent,
+  min_stock_remaining: row.min_remaining_stock,
+  status: row.state
+});
+
+export const isOrderEligible = (order, products, mandate) => {
+  if (!Array.isArray(order.items) || !order.items.length) return false;
+  const productById = new Map(products.map(product => [product.id, product]));
+  const quantities = new Map();
+  for (const item of order.items) {
+    if (!Number.isInteger(item.quantity) || item.quantity <= 0) return false;
+    quantities.set(item.product_id, (quantities.get(item.product_id) ?? 0) + item.quantity);
+  }
+  const quantity = [...quantities.values()].reduce((total, value) => total + value, 0);
+  return quantity === order.quantity
+    && quantity <= mandate.max_items_per_order
+    && order.total_cents <= mandate.max_total_cents
+    && order.discount_percent <= mandate.max_discount_percent
+    && [...quantities].every(([productId, requested]) => productById.has(productId)
+      && productById.get(productId).stock - requested >= mandate.min_stock_remaining);
 };
 
 export const createPostgresRepository = db => ({
@@ -116,6 +145,92 @@ export const createPostgresRepository = db => ({
       UPDATE seller_users SET session_token_hash = NULL, session_expires_at = NULL, version = version + 1
       WHERE session_token_hash = $1
     `, [tokenHash]);
+  },
+
+  async getMandate() {
+    const { rows: [mandate] } = await db.pool.query(`
+      SELECT max_items, max_total_cents, max_discount_percent, min_remaining_stock, state, version
+      FROM mandates WHERE state = 'active' ORDER BY version DESC LIMIT 1
+    `);
+    return mandateResult(mandate);
+  },
+
+  async updateMandate(expectedVersion, limits, tokenHash, now) {
+    const client = await db.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const { rows: [seller] } = await client.query(`
+        SELECT id FROM seller_users
+        WHERE session_token_hash = $1 AND session_expires_at > $2 AND status = 'active'
+        FOR UPDATE
+      `, [tokenHash, now]);
+      if (!seller) {
+        await client.query('ROLLBACK');
+        return { error: 'FORBIDDEN' };
+      }
+
+      const { rows: [current] } = await client.query(`
+        SELECT id, max_items, max_total_cents, max_discount_percent, min_remaining_stock, state, version
+        FROM mandates WHERE state = 'active' ORDER BY version DESC LIMIT 1 FOR UPDATE
+      `);
+      if (!current) {
+        await client.query('ROLLBACK');
+        return { error: 'UNAVAILABLE' };
+      }
+      if (current.version !== expectedVersion) {
+        await client.query('ROLLBACK');
+        return { error: 'STALE', mandate: mandateResult(current) };
+      }
+
+      await client.query("UPDATE mandates SET state = 'superseded' WHERE id = $1", [current.id]);
+      const { rows: [saved] } = await client.query(`
+        INSERT INTO mandates (id, max_items, max_total_cents, max_discount_percent, min_remaining_stock, state, version)
+        VALUES ($1, $2, $3, $4, $5, 'active', $6)
+        RETURNING max_items, max_total_cents, max_discount_percent, min_remaining_stock, state, version
+      `, [`mandate-${current.version + 1}`, limits.max_items_per_order, limits.max_total_cents,
+        limits.max_discount_percent, limits.min_stock_remaining, current.version + 1]);
+      const mandate = mandateResult(saved);
+      const { rows: actions } = await client.query(`
+        SELECT pa.id, pa.order_id, pa.quantity, pa.version AS action_version,
+          o.items, o.total_cents, o.discount_percent, o.status, o.version AS order_version
+        FROM pending_actions pa JOIN orders o ON o.id = pa.order_id
+        WHERE pa.state IN ('pending', 'eligible', 'approved') AND o.status IN ('pending', 'eligible')
+        ORDER BY pa.order_id, pa.id FOR UPDATE OF pa, o
+      `);
+      const productIds = [...new Set(actions.flatMap(action => action.items.map(item => item.product_id)))].sort();
+      const { rows: products } = productIds.length ? await client.query(`
+        SELECT id, stock, version FROM products WHERE id = ANY($1::text[]) ORDER BY id FOR UPDATE
+      `, [productIds]) : { rows: [] };
+
+      let eligible = 0;
+      for (const action of actions) {
+        const permitted = isOrderEligible(action, products, mandate);
+        const state = permitted ? 'eligible' : 'pending';
+        eligible += Number(permitted);
+        await client.query("UPDATE pending_actions SET state = 'replaced', version = version + 1 WHERE id = $1", [action.id]);
+        await client.query("UPDATE approval_tokens SET state = 'invalidated', version = version + 1 WHERE action_id = $1 AND state = 'active'", [action.id]);
+        const { rows: [order] } = action.status === state ? { rows: [{ version: action.order_version }] } : await client.query(
+          'UPDATE orders SET status = $2, version = version + 1 WHERE id = $1 RETURNING version', [action.order_id, state]
+        );
+        const snapshot = {
+          mandate_version: mandate.mandate_version,
+          order_version: order.version,
+          items: action.items,
+          products: products.filter(product => action.items.some(item => item.product_id === product.id))
+        };
+        await client.query(`
+          INSERT INTO pending_actions (id, order_id, mandate_version, quantity, snapshot, state, version)
+          VALUES ($1, $2, $3, $4, $5::jsonb, $6, 1)
+        `, [`pending-${randomUUID()}`, action.order_id, mandate.mandate_version, action.quantity, JSON.stringify(snapshot), state]);
+      }
+      await client.query('COMMIT');
+      return { mandate, re_evaluated: actions.length, eligible };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   },
 
   async listProducts(query, limit) {
