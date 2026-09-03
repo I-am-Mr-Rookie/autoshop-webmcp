@@ -123,6 +123,7 @@ test('repository and migration enforce current single-use approval before atomic
   assert.match(commit, /FOR UPDATE[\s\S]+token_hash[\s\S]+expires_at[\s\S]+state = 'consumed'/);
   assert.match(commit, /mandate_version[\s\S]+order_version[\s\S]+products[\s\S]+UPDATE products/);
   assert.match(commit, /UPDATE orders SET status = 'accepted'[\s\S]+UPDATE pending_actions SET state = 'committed'[\s\S]+INSERT INTO receipts[\s\S]+COMMIT/);
+  assert.match(commit, /decision_path: 'human_exception'[\s\S]+mandate_version: mandate\.mandate_version/);
 });
 
 test('seller page requires a visible confirmation and commit_action uses the server endpoint', async () => {

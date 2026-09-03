@@ -671,6 +671,8 @@ export const createPostgresRepository = db => ({
         receipt_id: receiptId,
         order_id: action.order_id,
         action_id: actionId,
+        decision_path: 'human_exception',
+        mandate_version: mandate.mandate_version,
         items: action.items,
         total_cents: action.total_cents,
         discount_percent: action.discount_percent
@@ -861,6 +863,8 @@ export const createPostgresRepository = db => ({
       const body = {
         receipt_id: receiptId,
         order_id: orderId,
+        decision_path: 'mandate',
+        mandate_version: mandate.mandate_version,
         items: order.items,
         total_cents: order.total_cents,
         discount_percent: order.discount_percent

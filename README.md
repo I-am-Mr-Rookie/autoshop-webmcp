@@ -1,18 +1,18 @@
 # AutoShop
 
-**A synthetic marketplace where agents can act, but humans define and cross the authority boundaries.**
+**A seller-controlled authority layer for agentic commerce.**
 
-[Live buyer demo](https://autoshop-webmcp.netlify.app/buyer) · [Seller portal](https://autoshop-webmcp.netlify.app/seller)
+[Live product](https://autoshop-webmcp.netlify.app/) · [Seller control plane](https://autoshop-webmcp.netlify.app/seller) · [Buyer workload generator](https://autoshop-webmcp.netlify.app/buyer)
 
 ![AutoShop's buyer, agent, and seller authority circuit](public/img/hero-circuit.svg)
 
-AutoShop is a working WebMCP demonstration for delegated commerce. A buyer can let an agent browse computer parts and, in **Auto** mode, change a cart. The buyer must still visibly confirm the exact cart before `submit_order` can succeed. A signed-in seller gives the agent a numerical mandate; in-mandate orders commit atomically, while exceptions require a visible, action-specific human approval before `commit_action` can succeed.
+AutoShop lets a signed-in seller give a browser agent a live numerical mandate. In-mandate orders commit atomically, while exceptions stop for visible, action-specific human approval before `commit_action` can succeed. A small buyer portal generates a deterministic workload and proves the complete boundary: the buyer can delegate catalogue and cart work, but must still visibly confirm the exact cart before `submit_order` succeeds.
 
-The catalogue, identities, orders, inventory changes, and receipts are synthetic. No payment or shipment occurs.
+The catalogue, identities, orders, inventory changes, and receipts are synthetic so every judge can reproduce the same seller decision. No payment or shipment occurs.
 
 ## Why WebMCP is load-bearing
 
-The same pages serve humans and expose seven role-scoped tools through `document.modelContext.registerTool`. The agent does not scrape buttons or call a separate automation API. Tool availability follows the visible page and seller session, inputs are strict JSON Schemas, every server mutation revalidates live state, and receipts make successful commits inspectable by both roles.
+The same pages serve humans and expose seven role-scoped tools through `document.modelContext.registerTool`. The agent does not scrape buttons or call a separate automation API. Tool availability follows the visible page and seller session, inputs are strict JSON Schemas, every server mutation revalidates live state, and each receipt records the mandate version plus whether authority came from the mandate or a human-approved exception.
 
 | Portal | Tool | Contract and boundary |
 |---|---|---|
@@ -28,15 +28,14 @@ Seller tools register only after authentication and are removed on logout, expir
 
 ## Three-minute judge path
 
-Use ChatGPT's in-app Browser or a WebMCP-enabled Chrome build. Start from the [buyer portal](https://autoshop-webmcp.netlify.app/buyer), not the informational homepage.
+Use ChatGPT's in-app Browser or a WebMCP-enabled Chrome build. Start in the seller control plane so the product and mandate are clear before generating its workload.
 
-1. Verify that only the three buyer tools are available. Ask the agent to find DDR memory.
-2. Select **Auto**, then ask the agent to add six units of the 16 GB DDR5 RAM. In Ask mode, the same agent mutation is refused.
-3. Enter clearly synthetic buyer details and visibly confirm the exact cart. Ask the agent to call `submit_order` with the displayed order ID.
-4. Open the [seller portal](https://autoshop-webmcp.netlify.app/seller) and sign in with the private judging credential. Verify that exactly four seller tools appear.
-5. Ask the agent to list orders and accept six units with a fresh idempotency key. The default mandate allows five, so the tool returns `APPROVAL_REQUIRED` without changing stock.
-6. Review that pending action in the page and check the explicit approval box. Ask the agent to call `commit_action` with the displayed action ID and a fresh idempotency key.
-7. Return to the buyer portal: the accepted status and receipt survive refresh. The seller can reset all synthetic state for the next run.
+1. Open the [seller control plane](https://autoshop-webmcp.netlify.app/seller), sign in with the private judging credential, and verify that exactly four seller tools appear. Ask for the live mandate: its item cap is five.
+2. Open the [buyer workload generator](https://autoshop-webmcp.netlify.app/buyer). Verify that only three buyer tools are available and ask the agent to find DDR memory.
+3. Select **Auto**, then ask the agent to add six units of the 16 GB DDR5 RAM. Enter clearly synthetic buyer details, visibly confirm the exact cart, and ask the agent to submit the displayed order ID.
+4. Return to the seller control plane. Ask the agent to list orders and accept six units with a fresh idempotency key. The tool returns `APPROVAL_REQUIRED` without changing stock because the mandate allows five.
+5. Review that pending action in the page and check the explicit approval box. Ask the agent to call `commit_action` with the displayed action ID and a fresh idempotency key.
+6. Return to the buyer portal: the accepted status and receipt survive refresh. The seller can reset all synthetic state for the next run.
 
 ## Safety properties
 

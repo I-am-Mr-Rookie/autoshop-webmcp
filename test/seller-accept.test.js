@@ -114,6 +114,7 @@ test('repository exposes one transactional acceptance path and receipts stay imm
   assert.equal(typeof repository.acceptOrder, 'function');
   const source = await readFile(new URL('../netlify/functions/_shared/postgres-repository.mjs', import.meta.url), 'utf8');
   assert.match(source, /BEGIN[\s\S]+FOR UPDATE[\s\S]+UPDATE products[\s\S]+INSERT INTO receipts[\s\S]+COMMIT/);
+  assert.match(source, /decision_path: 'mandate'[\s\S]+mandate_version: mandate\.mandate_version/);
   assert.match(source, /replay\.order_id !== orderId[\s\S]+replay\.quantity !== quantity/);
   assert.match(source, /status IN \('requested', 'eligible'\)[\s\S]+pending_actions SET state = 'committed'/);
   assert.doesNotMatch(source, /UPDATE receipts/);

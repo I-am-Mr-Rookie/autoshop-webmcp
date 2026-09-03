@@ -543,7 +543,7 @@ async function setupSellerAuthentication() {
       items.textContent = order.items.map(item => `${item.product_id} × ${item.quantity}`).join(', ');
       receipt.className = order.receipt ? 'receipt-line' : 'state-chip';
       receipt.textContent = order.receipt
-        ? `Receipt ${order.receipt.receipt_id}`
+        ? `Receipt ${order.receipt.receipt_id} · ${order.receipt.decision_path === 'human_exception' ? 'human-approved exception' : 'within mandate'} · mandate v${order.receipt.mandate_version}`
         : `${order.status}${order.pending_action ? ` · action ${order.pending_action.state}` : ''}`;
       copy.append(id, title, items, receipt);
       const actions = document.createElement('div');

@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
-  <meta name="description" content="AutoShop is a synthetic computer-parts marketplace demonstrating bounded human-agent authority with WebMCP tools. The agent shops; you keep the last word.">
-  <title>AutoShop — the agent shops, you keep the last word</title>
+  <meta name="description" content="AutoShop is a seller-controlled authority layer for agentic commerce: routine orders proceed inside a live mandate, while exceptions require exact human approval.">
+  <title>AutoShop — seller-controlled agentic commerce</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%231d2b34'/%3E%3Cpath d='M16 46 28 18h8l12 28h-8l-2-6H26l-2 6zm13-13h6l-3-9z' fill='%236ee7b7'/%3E%3C/svg%3E">
   <style>
     /* AutoShop homepage · technical paper · no scripts, no external requests */
@@ -67,6 +67,7 @@
     .hero .grid { row-gap: 32px; align-items: center; }
     .hero-copy { grid-column: 1 / span 7; }
     .hero-copy h1 { margin-top: 22px; }
+    .scenario { margin-top: 18px; padding: 10px 12px; border-left: 3px solid var(--human); background: var(--human-tint); color: var(--human-ink); font: 600 .78rem/1.55 var(--mono); }
     .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
     .hero-actions .text-link { align-self: center; margin-left: 6px; font-weight: 600; font-size: .95rem; }
     .facts { display: flex; flex-wrap: wrap; gap: 8px; margin: 26px 0 0; padding: 0; list-style: none; }
@@ -189,8 +190,8 @@
     <div class="wrap">
       <a class="brand" href="/" aria-current="page"><strong>AutoShop</strong><span>Synthetic parts · bounded authority</span></a>
       <div class="portal-nav">
-        <a href="/buyer">Buyer</a>
         <a href="/seller">Seller</a>
+        <a href="/buyer">Buyer</a>
         <a class="github" href="https://github.com/I-am-Mr-Rookie/autoshop-webmcp" target="_blank" rel="noopener noreferrer">GitHub</a>
       </div>
     </div>
@@ -200,19 +201,20 @@
     <header class="hero">
       <div class="wrap grid">
         <div class="hero-copy">
-          <p class="eyebrow rise">AutoShop · WebMCP demonstration · synthetic marketplace</p>
-          <h1 class="rise">The agent shops.<br>You keep the last word.</h1>
-          <p class="lede rise">AutoShop is a synthetic computer-parts marketplace built to show <em>bounded</em> human–agent authority. An AI agent can browse the catalogue, fill a cart, and triage orders through seven WebMCP tools. Humans choose the buyer scope and confirm each order; sellers define the mandate and explicitly approve only exceptions.</p>
+          <p class="eyebrow rise">AutoShop · seller authority for agentic commerce</p>
+          <h1 class="rise">The agent handles routine orders.<br>The seller keeps authority.</h1>
+          <p class="lede rise">AutoShop lets a seller give a browser agent a live numerical mandate. Orders inside it can proceed; exceptions stop for exact, visible human approval; every successful decision leaves a receipt. The tiny synthetic marketplace is the deterministic test harness that makes this seller boundary easy to inspect.</p>
+          <p class="scenario rise">6 units requested → mandate allows 5 → APPROVAL_REQUIRED → seller approves one exact action → immutable receipt</p>
           <div class="hero-actions rise">
-            <a class="btn" href="/buyer">Enter the buyer portal</a>
-            <a class="btn btn-secondary" href="/seller">Open the seller portal</a>
+            <a class="btn" href="/seller">Open the seller control plane</a>
+            <a class="btn btn-secondary" href="/buyer">Generate a buyer order</a>
             <a class="text-link" href="https://github.com/I-am-Mr-Rookie/autoshop-webmcp" target="_blank" rel="noopener noreferrer">Read the source on GitHub</a>
           </div>
           <ul class="facts" aria-label="Key facts">
-            <li>3 buyer tools · 4 seller tools</li>
-            <li>Ask is the default scope</li>
-            <li class="human">Human confirmation before every order</li>
-            <li class="human">Human approval before every exception</li>
+            <li>4 authenticated seller tools</li>
+            <li>Live, versioned numerical mandate</li>
+            <li class="human">Out-of-mandate actions stop</li>
+            <li class="human">Exact human approval before commit</li>
             <li>Synthetic only · no payments</li>
           </ul>
         </div>
@@ -226,24 +228,24 @@
     <section class="band" aria-labelledby="how-title">
       <div class="wrap">
         <div class="section-head">
-          <div><p class="eyebrow">How it works</p><h2 id="how-title">Two portals, one boundary each</h2></div>
-          <p class="hint">Humans define the scope. Agents act inside it; new buyer authority and out-of-mandate seller actions stay visible and human-controlled. The boundary is drawn in the interface, not buried in policy text.</p>
+          <div><p class="eyebrow">How it works</p><h2 id="how-title">One seller decision, proved end to end</h2></div>
+          <p class="hint">The buyer portal creates a reproducible workload. The seller control plane is the product: the agent acts inside the merchant's mandate, while every exception remains visible and human-controlled.</p>
         </div>
         <div class="circuits">
-          <article class="circuit" aria-labelledby="buyer-circuit">
-            <div class="circuit-head"><h3 id="buyer-circuit">Buyer side</h3><a href="/buyer">Open buyer portal</a></div>
-            <ol class="steps">
-              <li><span>01</span><strong>Browse</strong><small>The agent inspects seeded stock and prices.</small><b>Agent scope</b></li>
-              <li><span>02</span><strong>Choose scope</strong><small>Ask or Auto decides whether it may change the cart.</small><b>Agent scope</b></li>
-              <li><span>03</span><strong>Confirm</strong><small>You review the exact cart and authorize the order once.</small><b>Human decision</b></li>
-            </ol>
-          </article>
           <article class="circuit" aria-labelledby="seller-circuit">
-            <div class="circuit-head"><h3 id="seller-circuit">Seller side</h3><a href="/seller">Open seller portal</a></div>
+            <div class="circuit-head"><h3 id="seller-circuit">Seller control plane</h3><a href="/seller">Open seller portal</a></div>
             <ol class="steps">
               <li><span>01</span><strong>Authenticate</strong><small>Seller tools stay hidden until sign-in.</small><b>Gate</b></li>
               <li><span>02</span><strong>Enforce mandate</strong><small>Orders inside the numerical mandate can be accepted by the agent.</small><b>Agent scope</b></li>
               <li><span>03</span><strong>Approve exception</strong><small>Anything outside it waits for one explicit, visible approval.</small><b>Human decision</b></li>
+            </ol>
+          </article>
+          <article class="circuit" aria-labelledby="buyer-circuit">
+            <div class="circuit-head"><h3 id="buyer-circuit">Deterministic workload</h3><a href="/buyer">Generate buyer order</a></div>
+            <ol class="steps">
+              <li><span>01</span><strong>Browse</strong><small>The agent inspects seeded stock and prices.</small><b>Agent scope</b></li>
+              <li><span>02</span><strong>Choose scope</strong><small>Ask or Auto decides whether it may change the cart.</small><b>Agent scope</b></li>
+              <li><span>03</span><strong>Confirm</strong><small>You review the exact cart and authorize the order once.</small><b>Human decision</b></li>
             </ol>
           </article>
         </div>
@@ -357,17 +359,17 @@
           <p class="hint">Open a portal in a WebMCP-capable browser to let an agent work with you, or drive everything by hand — the boundaries hold either way.</p>
         </div>
         <div class="pick">
-          <a href="/buyer" class="buyer">
-            <p class="eyebrow">Buyer portal</p>
-            <h3>Build a cart, choose the agent's scope, confirm once.</h3>
-            <p>No account needed. A private browser cookie scopes server-side demo state; the one-time confirmation token stays only in page memory.</p>
-            <span class="go">Enter as buyer</span>
-          </a>
           <a href="/seller" class="seller">
-            <p class="eyebrow">Seller portal</p>
+            <p class="eyebrow">Seller control plane · the product</p>
             <h3>Sign in, tune the mandate, approve the exceptions.</h3>
             <p>Uses the privately supplied demo credential. The credential is never embedded in the page or repository.</p>
             <span class="go">Sign in as seller</span>
+          </a>
+          <a href="/buyer" class="buyer">
+            <p class="eyebrow">Buyer portal · workload generator</p>
+            <h3>Build a cart, choose the agent's scope, confirm once.</h3>
+            <p>No account needed. A private browser cookie scopes server-side demo state; the one-time confirmation token stays only in page memory.</p>
+            <span class="go">Generate an order</span>
           </a>
         </div>
       </div>
