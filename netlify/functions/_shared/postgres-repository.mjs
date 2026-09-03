@@ -135,25 +135,28 @@ export const createPostgresRepository = db => ({
 
   async createSellerSession(id, tokenHash, expiresAt) {
     await db.pool.query(`
-      UPDATE seller_users SET session_token_hash = $2, session_expires_at = $3,
-        failed_login_count = 0, locked_until = NULL, version = version + 1
-      WHERE id = $1 AND status = 'active'
+      WITH seller AS (
+        UPDATE seller_users SET failed_login_count = 0, locked_until = NULL, version = version + 1
+        WHERE id = $1 AND status = 'active' RETURNING id
+      )
+      INSERT INTO seller_sessions (token_hash, seller_id, expires_at)
+      SELECT $2, id, $3 FROM seller
+      ON CONFLICT (token_hash) DO UPDATE SET expires_at = EXCLUDED.expires_at
     `, [id, tokenHash, expiresAt]);
   },
 
   async findSellerSession(tokenHash, now) {
+    await db.pool.query('DELETE FROM seller_sessions WHERE token_hash = $1 AND expires_at <= $2', [tokenHash, now]);
     const { rows: [seller] } = await db.pool.query(`
-      SELECT username, session_expires_at AS expires_at FROM seller_users
-      WHERE session_token_hash = $1 AND session_expires_at > $2 AND status = 'active'
+      SELECT su.id AS seller_user_id, su.username, ss.expires_at
+      FROM seller_sessions ss JOIN seller_users su ON su.id = ss.seller_id
+      WHERE ss.token_hash = $1 AND ss.expires_at > $2 AND su.status = 'active'
     `, [tokenHash, now]);
     return seller ?? null;
   },
 
   async deleteSellerSession(tokenHash) {
-    await db.pool.query(`
-      UPDATE seller_users SET session_token_hash = NULL, session_expires_at = NULL, version = version + 1
-      WHERE session_token_hash = $1
-    `, [tokenHash]);
+    await db.pool.query('DELETE FROM seller_sessions WHERE token_hash = $1', [tokenHash]);
   },
 
   async getMandate() {
@@ -177,8 +180,8 @@ export const createPostgresRepository = db => ({
       ) pa ON true
       LEFT JOIN receipts r ON r.order_id = o.id
       WHERE EXISTS (
-        SELECT 1 FROM seller_users
-        WHERE session_token_hash = $1 AND session_expires_at > $2 AND status = 'active'
+        SELECT 1 FROM seller_sessions ss JOIN seller_users su ON su.id = ss.seller_id
+        WHERE ss.token_hash = $1 AND ss.expires_at > $2 AND su.status = 'active'
       )
       ORDER BY o.created_at DESC, o.id DESC LIMIT $3
     `, [tokenHash, now, limit]);
@@ -203,9 +206,9 @@ export const createPostgresRepository = db => ({
     try {
       await client.query('BEGIN');
       const { rows: [seller] } = await client.query(`
-        SELECT id FROM seller_users
-        WHERE session_token_hash = $1 AND session_expires_at > $2 AND status = 'active'
-        FOR UPDATE
+        SELECT su.id FROM seller_sessions ss JOIN seller_users su ON su.id = ss.seller_id
+        WHERE ss.token_hash = $1 AND ss.expires_at > $2 AND su.status = 'active'
+        FOR UPDATE OF su
       `, [tokenHash, now]);
       if (!seller) {
         await client.query('ROLLBACK');
@@ -446,7 +449,7 @@ export const createPostgresRepository = db => ({
           confirm_cart_version = NULL, confirm_expires_at = NULL, version = version + 1
         WHERE id = $1
       `, [sessionId]);
-      await client.query("UPDATE carts SET status = 'submitted', version = version + 1 WHERE buyer_session_id = $1", [sessionId]);
+      await client.query("UPDATE carts SET items = '[]'::jsonb, status = 'open', version = version + 1 WHERE buyer_session_id = $1", [sessionId]);
       await client.query('COMMIT');
       return { order, replayed: false };
     } catch (error) {
@@ -463,9 +466,9 @@ export const createPostgresRepository = db => ({
       await client.query('BEGIN');
       // ponytail: the single demo seller row serializes approvals; use advisory locks if seller throughput grows.
       const { rows: [seller] } = await client.query(`
-        SELECT id FROM seller_users
-        WHERE session_token_hash = $1 AND session_expires_at > $2 AND status = 'active'
-        FOR UPDATE
+        SELECT su.id FROM seller_sessions ss JOIN seller_users su ON su.id = ss.seller_id
+        WHERE ss.token_hash = $1 AND ss.expires_at > $2 AND su.status = 'active'
+        FOR UPDATE OF su
       `, [sellerTokenHash, now]);
       if (!seller) {
         await client.query('ROLLBACK');
@@ -554,9 +557,9 @@ export const createPostgresRepository = db => ({
     try {
       await client.query('BEGIN');
       const { rows: [seller] } = await client.query(`
-        SELECT id FROM seller_users
-        WHERE session_token_hash = $1 AND session_expires_at > $2 AND status = 'active'
-        FOR UPDATE
+        SELECT su.id FROM seller_sessions ss JOIN seller_users su ON su.id = ss.seller_id
+        WHERE ss.token_hash = $1 AND ss.expires_at > $2 AND su.status = 'active'
+        FOR UPDATE OF su
       `, [sellerTokenHash, now]);
       if (!seller) {
         await client.query('ROLLBACK');
@@ -699,9 +702,9 @@ export const createPostgresRepository = db => ({
       await client.query('BEGIN');
       // ponytail: one demo seller row serializes acceptance; use advisory locks if seller throughput grows.
       const { rows: [seller] } = await client.query(`
-        SELECT id FROM seller_users
-        WHERE session_token_hash = $1 AND session_expires_at > $2 AND status = 'active'
-        FOR UPDATE
+        SELECT su.id FROM seller_sessions ss JOIN seller_users su ON su.id = ss.seller_id
+        WHERE ss.token_hash = $1 AND ss.expires_at > $2 AND su.status = 'active'
+        FOR UPDATE OF su
       `, [tokenHash, now]);
       if (!seller) {
         await client.query('ROLLBACK');
@@ -782,11 +785,9 @@ export const createPostgresRepository = db => ({
           && JSON.stringify(current.snapshot.items) === JSON.stringify(order.items)
           && JSON.stringify(current.snapshot.products) === JSON.stringify(products);
         if (currentSnapshot) {
-          if (current.idempotency_key && current.idempotency_key !== idempotencyKey) {
-            await client.query('ROLLBACK');
-            return { error: 'CONFLICT' };
-          }
-          const { rows: [pendingAction] } = current.idempotency_key ? { rows: [current] } : await client.query(`
+          const { rows: [pendingAction] } = current.idempotency_key ? { rows: [{
+            action_id: current.id, order_id: current.order_id, quantity: current.quantity, state: current.state, version: current.version
+          }] } : await client.query(`
             UPDATE pending_actions SET idempotency_key = $2, version = version + 1
             WHERE id = $1
             RETURNING id AS action_id, order_id, quantity, state, version

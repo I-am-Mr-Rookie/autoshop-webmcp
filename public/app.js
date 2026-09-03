@@ -44,6 +44,23 @@ export const TOOL_INPUT_SCHEMAS = Object.freeze({
 const failure = (code, message, retryable) => ({ ok: false, error: { code, message, retryable } });
 const unavailable = () => failure('UNAVAILABLE', 'This operation is not available yet.', true);
 
+const apiError = (response, result, fallback) => Object.assign(
+  new Error(result?.error?.message ?? fallback),
+  { code: result?.error?.code ?? 'UNAVAILABLE', status: response.status, retryable: response.status >= 500 }
+);
+
+const sellerApiError = (response, result, fallback) => {
+  const error = apiError(response, result, fallback);
+  if (response.status === 401 && typeof document !== 'undefined' && typeof document.dispatchEvent === 'function') {
+    document.dispatchEvent(new Event('autoshop:seller-session-lost'));
+  }
+  return error;
+};
+
+const toolFailure = (error, fallback) => error?.code
+  ? failure(error.code, error.message, Boolean(error.retryable))
+  : failure('UNAVAILABLE', fallback, true);
+
 function accepts(schema, input) {
   if (!input || Array.isArray(input) || typeof input !== 'object') return false;
   if (Object.keys(input).some(key => !Object.hasOwn(schema.properties, key))) return false;
@@ -81,7 +98,7 @@ export async function readBuyerState(fetcher, input = {}) {
   if (input.limit) params.set('limit', input.limit);
   const response = await fetcher(`/api/buyer?${params}`);
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error?.message ?? 'Buyer data is temporarily unavailable.');
+  if (!response.ok) throw apiError(response, result, 'Buyer data is temporarily unavailable.');
   return result;
 }
 
@@ -90,7 +107,7 @@ export async function mutateBuyerCart(fetcher, input) {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(input)
   });
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error?.message ?? 'Cart update failed.');
+  if (!response.ok) throw apiError(response, result, 'Cart update failed.');
   return result;
 }
 
@@ -99,14 +116,14 @@ export async function submitBuyerOrder(fetcher, input) {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(input)
   });
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error?.message ?? 'Order submission failed.');
+  if (!response.ok) throw apiError(response, result, 'Order submission failed.');
   return result;
 }
 
 export async function readBuyerOrder(fetcher, orderId) {
   const response = await fetcher(orderId ? `/api/buyer/order?order_id=${encodeURIComponent(orderId)}` : '/api/buyer/order');
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error?.message ?? 'Order status is unavailable.');
+  if (!response.ok) throw apiError(response, result, 'Order status is unavailable.');
   return result;
 }
 
@@ -122,7 +139,7 @@ export async function resetDemoData(fetcher) {
 const browserTool = handler => async input => {
   if (typeof document === 'undefined') return unavailable();
   try { return await handler(input); }
-  catch { return failure('UNAVAILABLE', 'Buyer data is temporarily unavailable.', true); }
+  catch (error) { return toolFailure(error, 'Buyer data is temporarily unavailable.'); }
 };
 
 export const BUYER_TOOLS = Object.freeze([
@@ -167,11 +184,7 @@ export const GET_MANDATE_TOOL = tool(
     try {
       const response = await fetch('/api/seller/mandate');
       const result = await response.json();
-      if (!response.ok) return failure(
-        result.error?.code ?? 'UNAVAILABLE',
-        result.error?.message ?? 'Seller mandate is temporarily unavailable.',
-        response.status >= 500
-      );
+      if (!response.ok) return toolFailure(sellerApiError(response, result, 'Seller mandate is temporarily unavailable.'), 'Seller mandate is temporarily unavailable.');
       currentMandate = result.mandate;
       return { ...currentMandate };
     } catch {
@@ -195,8 +208,8 @@ const ACCEPT_ORDER_TOOL = tool(
       }
       if (typeof document.dispatchEvent === 'function') document.dispatchEvent(new Event('autoshop:seller-change'));
       return result;
-    } catch {
-      return failure('UNAVAILABLE', 'Seller acceptance is temporarily unavailable.', true);
+    } catch (error) {
+      return toolFailure(error, 'Seller acceptance is temporarily unavailable.');
     }
   }
 );
@@ -221,8 +234,8 @@ export const COMMIT_ACTION_TOOL = tool(
       if (typeof document.dispatchEvent === 'function') document.dispatchEvent(new Event('autoshop:seller-authorization-cleared'));
       if (typeof document.dispatchEvent === 'function') document.dispatchEvent(new Event('autoshop:seller-change'));
       return result;
-    } catch {
-      return failure('UNAVAILABLE', 'Approved action commit is temporarily unavailable.', true);
+    } catch (error) {
+      return toolFailure(error, 'Approved action commit is temporarily unavailable.');
     }
   }
 );
@@ -233,7 +246,7 @@ export const SELLER_TOOLS = Object.freeze([
     async input => {
       if (typeof document === 'undefined') return unavailable();
       try { return await readSellerOrders(fetch, input.limit ?? 5); }
-      catch { return failure('UNAVAILABLE', 'Seller orders are temporarily unavailable.', true); }
+      catch (error) { return toolFailure(error, 'Seller orders are temporarily unavailable.'); }
     }),
   ACCEPT_ORDER_TOOL,
   COMMIT_ACTION_TOOL
@@ -258,6 +271,9 @@ export async function registerRoleTools(modelContext, pathname, onPageHide) {
     throw error;
   }
   onPageHide(() => controller.abort());
+  if (pathname === '/seller' && typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+    document.addEventListener('autoshop:seller-session-lost', () => controller.abort(), { once: true, signal: controller.signal });
+  }
   return () => controller.abort();
 }
 
@@ -289,7 +305,7 @@ export async function requestSellerApproval(fetcher, input) {
     body: JSON.stringify(input)
   });
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error?.message ?? 'Seller approval failed.');
+  if (!response.ok) throw sellerApiError(response, result, 'Seller approval failed.');
   sellerAuthorization = result;
   return {
     authorization: result,
@@ -300,7 +316,7 @@ export async function requestSellerApproval(fetcher, input) {
 export async function readSellerOrders(fetcher, limit = 5) {
   const response = await fetcher(`/api/seller/orders?limit=${limit}`);
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error?.message ?? 'Seller orders are temporarily unavailable.');
+  if (!response.ok) throw sellerApiError(response, result, 'Seller orders are temporarily unavailable.');
   return result;
 }
 
@@ -310,7 +326,7 @@ export async function acceptSellerOrder(fetcher, input) {
   });
   const result = await response.json();
   if (!response.ok && result.error?.code !== 'APPROVAL_REQUIRED') {
-    throw new Error(result.error?.message ?? 'Seller acceptance failed.');
+    throw sellerApiError(response, result, 'Seller acceptance failed.');
   }
   return result;
 }
@@ -320,7 +336,7 @@ export async function commitSellerAction(fetcher, input) {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(input)
   });
   const result = await response.json();
-  if (!response.ok) throw new Error(result.error?.message ?? 'Approved action commit failed.');
+  if (!response.ok) throw sellerApiError(response, result, 'Approved action commit failed.');
   return result;
 }
 
@@ -747,6 +763,9 @@ async function setupSellerAuthentication() {
   });
 
   refreshOrders.addEventListener('click', loadOrders);
+  document.addEventListener('autoshop:seller-session-lost', () => {
+    if (!consoleView.hidden) deactivate('Session expired · sign in again');
+  });
   document.addEventListener('autoshop:seller-authorization-cleared', () => {
     clearTimeout(sellerApprovalTimer);
     commitApproved.hidden = true;

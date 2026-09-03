@@ -71,7 +71,10 @@ test('mints one cart-scoped finalization authorization after visible confirmatio
 test('rejects missing sessions, empty carts, and malformed confirmation without minting', async () => {
   const validSession = 'e'.repeat(64);
   const repository = memoryRepository(hashConfirmationToken(validSession));
-  const handler = createConfirmationHandler(async () => repository, { createToken: () => 'c'.repeat(64) });
+  const handler = createConfirmationHandler(async () => repository, {
+    now: () => new Date('2026-09-02T12:00:00.000Z'),
+    createToken: () => 'c'.repeat(64)
+  });
 
   const malformed = await handler(new Request('https://example.test/api/buyer/confirm', {
     method: 'POST',

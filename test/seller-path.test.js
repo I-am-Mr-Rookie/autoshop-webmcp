@@ -87,7 +87,7 @@ test('repository bounds seller queue data without exposing buyer details', async
   } } });
   const result = await repository.listSellerOrders('token-hash', new Date('2026-09-03T00:00:00.000Z'), 2);
   assert.equal(query.params[2], 2);
-  assert.match(query.text, /WHERE session_token_hash = \$1/);
+  assert.match(query.text, /FROM seller_sessions ss JOIN seller_users su/);
   assert.equal(result[0].quantity, 3);
   assert.equal(result[0].receipt.receipt_id, 'receipt_1');
   assert.equal(Object.hasOwn(result[0], 'buyer_email'), false);

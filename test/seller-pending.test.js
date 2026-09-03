@@ -9,7 +9,8 @@ test('creates or safely refreshes one versioned pending snapshot without stock m
 
   assert.ok(acceptOrder.indexOf('FROM pending_actions WHERE idempotency_key') > acceptOrder.indexOf('FROM orders WHERE id = $1 FOR UPDATE'));
   assert.match(pendingBranch, /pending_actions[\s\S]+idempotency_key/);
-  assert.match(pendingBranch, /current\.idempotency_key !== idempotencyKey[\s\S]+error: 'CONFLICT'/);
+  assert.doesNotMatch(pendingBranch, /current\.idempotency_key !== idempotencyKey[\s\S]+error: 'CONFLICT'/);
+  assert.match(pendingBranch, /action_id: current\.id[\s\S]+replayed: true/);
   assert.match(pendingBranch, /mandate_version[\s\S]+order_version[\s\S]+items[\s\S]+products/);
   assert.match(pendingBranch, /state = 'replaced'[\s\S]+approval_tokens SET state = 'invalidated'/);
   assert.ok(pendingBranch.indexOf("UPDATE orders SET status = 'pending'") < pendingBranch.indexOf("state = 'replaced'"));

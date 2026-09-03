@@ -72,7 +72,7 @@ test('a failed stock update rolls back without creating a receipt', async () => 
       if (text === 'BEGIN') return { rows: [], rowCount: 0 };
       if (text === 'COMMIT') { committed = true; return { rows: [], rowCount: 0 }; }
       if (text === 'ROLLBACK') { rolledBack = true; return { rows: [], rowCount: 0 }; }
-      if (/SELECT id FROM seller_users/.test(text)) return { rows: [{ id: 'seller-1' }], rowCount: 1 };
+      if (/FROM seller_sessions ss JOIN seller_users su/.test(text)) return { rows: [{ id: 'seller-1' }], rowCount: 1 };
       if (/FROM orders o JOIN receipts/.test(text)) return { rows: [], rowCount: 0 };
       if (/SELECT id, items, total_cents/.test(text)) return { rows: [{
         id: 'order-1', items: [{ product_id: 'ram-1', quantity: 3 }], total_cents: 3000,

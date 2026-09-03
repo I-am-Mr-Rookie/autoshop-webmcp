@@ -29,6 +29,7 @@ test('production configuration freezes security headers, generated-state ignores
     '007_pending-idempotency',
     '008_approval-token-retention',
     '009_human-approval',
-    '010_order-retention'
+    '010_order-retention',
+    '011_seller-sessions'
   ]);
 });
