@@ -3,219 +3,499 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
   <title>AutoShop</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23090d12'/%3E%3Cpath d='M16 46 28 18h8l12 28h-8l-2-6H26l-2 6zm13-13h6l-3-9z' fill='%2368d5c3'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%231d2b34'/%3E%3Cpath d='M16 46 28 18h8l12 28h-8l-2-6H26l-2 6zm13-13h6l-3-9z' fill='%236ee7b7'/%3E%3C/svg%3E">
   <style>
-    :root { color-scheme: dark; --bg: #091017; --panel: #101922; --raised: #16222c; --line: #2a3b49; --line-strong: #425867; --text: #edf3f5; --muted: #97a7b1; --authority: #68d5c3; --decision: #d7a24b; --focus: #9bbdff; --sans: "Segoe UI Variable Text", Aptos, "Segoe UI", sans-serif; --serif: "DM Serif Display", Georgia, serif; --mono: "DM Mono", Consolas, monospace; font-family: var(--sans); color: var(--text); background: var(--bg); }
-    * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: clamp(12px, 2.5vw, 32px); background-color: var(--bg); background-image: linear-gradient(#20303c45 1px, transparent 1px), linear-gradient(90deg, #20303c45 1px, transparent 1px); background-size: 28px 28px; }
-    main { width: min(1240px, 100%); border: 1px solid var(--line-strong); background: var(--panel); box-shadow: 0 32px 90px #0009; }
-    nav { display: flex; justify-content: space-between; align-items: center; min-height: 54px; padding: 0 24px; border-bottom: 1px solid var(--line); font: 700 .72rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
-    nav strong { color: var(--text); }
-    nav div { display: flex; gap: 22px; }
-    a { color: var(--focus); text-decoration-thickness: 1px; text-underline-offset: 4px; }
-    a:hover { color: var(--text); }
-    header { display: grid; grid-template-columns: minmax(0, 1fr) minmax(290px, 360px); gap: clamp(28px, 6vw, 80px); align-items: end; padding: clamp(36px, 7vw, 78px); border-bottom: 1px solid var(--line); }
-    h1 { max-width: 9ch; margin: 0; font: 400 clamp(3.4rem, 8vw, 7.4rem)/.82 var(--serif); letter-spacing: -.055em; text-wrap: balance; }
-    header p { max-width: 48ch; margin: 24px 0 0; color: #c2cdd3; font-size: clamp(1rem, 1.5vw, 1.12rem); line-height: 1.65; }
-    .authority-rail { position: relative; display: grid; gap: 16px; padding-left: 22px; border-left: 2px solid var(--authority); }
-    .authority-rail::before { content: "BOUNDARY"; position: absolute; top: 0; left: -10px; padding: 5px 0; color: var(--authority); background: var(--panel); font: 700 .58rem/1 var(--mono); letter-spacing: .12em; writing-mode: vertical-rl; }
-    .authority-steps { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; border-block: 1px solid var(--line); }
-    .authority-steps li { display: grid; grid-template-columns: 30px 1fr; gap: 3px 10px; padding: 11px 0; border-bottom: 1px solid var(--line); }
-    .authority-steps li:last-child { border-bottom: 0; }
-    .authority-steps span { grid-row: 1 / 3; color: var(--authority); font: 700 .66rem/1.5 var(--mono); }
-    .authority-steps strong { font: 700 .72rem/1.3 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
-    .authority-steps small { color: var(--muted); font-size: .77rem; line-height: 1.35; }
-    .status { display: block; padding: 9px 11px; border: 1px solid currentColor; color: var(--authority); font: 700 .7rem/1.4 var(--mono); letter-spacing: .03em; box-shadow: inset 3px 0 currentColor; }
-    footer { padding: 18px 24px; border-top: 1px solid var(--line); color: var(--muted); font: .72rem/1.55 var(--mono); letter-spacing: .02em; }
-    .buyer-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(360px, .95fr); }
-    .review, form, .catalogue, .order-panel { padding: clamp(26px, 4vw, 44px); }
-    .review { border-right: 1px solid var(--line); background: #0c141b; }
-    h2 { margin: 0 0 12px; font: 400 clamp(1.8rem, 3vw, 2.6rem)/1.05 var(--serif); letter-spacing: -.025em; }
-    .review > p, fieldset > p, .catalogue > p, .seller-login p { color: var(--muted); line-height: 1.6; }
-    .cart { min-height: 78px; margin: 28px 0; padding: 0; list-style: none; border-block: 1px solid var(--line); }
-    .cart li { display: flex; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--line); }
-    .cart li:last-child { border-bottom: 0; }
-    .total { display: flex; justify-content: space-between; font: 700 .88rem/1.4 var(--mono); letter-spacing: .03em; text-transform: uppercase; }
-    fieldset { margin: 0 0 30px; padding: 0; border: 0; }
-    legend { width: 100%; margin-bottom: 15px; padding-bottom: 9px; border-bottom: 1px solid var(--line); color: #cbd5da; font: 700 .7rem/1.4 var(--mono); letter-spacing: .09em; text-transform: uppercase; }
-    .mode-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .mode-option { display: grid; grid-template-columns: auto 1fr; gap: 7px 9px; padding: 16px; border: 1px solid var(--line); background: var(--bg); cursor: pointer; transition: border-color 140ms ease, background 140ms ease; }
-    .mode-option:has(input:checked) { border-color: var(--authority); background: #11221f; box-shadow: inset 3px 0 var(--authority); }
-    .mode-option span { font-weight: 750; }
-    .mode-option small { grid-column: 2; color: var(--muted); line-height: 1.4; }
-    .field { display: grid; gap: 7px; margin-top: 15px; color: #cbd5da; font: 700 .69rem/1.4 var(--mono); letter-spacing: .045em; text-transform: uppercase; }
-    input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="search"] { width: 100%; border: 1px solid var(--line-strong); border-radius: 0; background: var(--bg); color: var(--text); padding: 12px 13px; font: 1rem/1.4 var(--sans); transition: border-color 140ms ease, box-shadow 140ms ease; }
-    input:hover { border-color: #607887; }
-    button { width: 100%; border: 1px solid var(--authority); border-radius: 0; background: var(--authority); color: #07130f; padding: 13px 16px; font: 800 .72rem/1.25 var(--mono); letter-spacing: .045em; text-transform: uppercase; cursor: pointer; transition: background 140ms ease, border-color 140ms ease, transform 140ms ease; }
-    button:hover:not(:disabled) { border-color: #96e7da; background: #96e7da; transform: translateY(-1px); }
-    button:disabled { cursor: not-allowed; opacity: .48; }
-    .confirmation-status, .order-status { display: block; min-height: 3.25em; margin-top: 15px; padding: 11px 13px; border-left: 3px solid var(--focus); background: #0b141c; color: var(--focus); font: .74rem/1.5 var(--mono); overflow-wrap: anywhere; }
-    .seller-login { max-width: 500px; border-right: 1px solid var(--line); }
-    .seller-login input { padding-right: 48px; }
-    .seller-login button { margin-top: 22px; }
-    .mandate-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
-    .mandate-version { color: var(--muted); font: .72rem/1.5 var(--mono); }
-    .approval-warning { padding: 13px 15px; border-left: 3px solid var(--decision); background: #211a0f; color: #efc77f; line-height: 1.55; }
-    .approval-confirm { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; margin: 20px 0; line-height: 1.5; }
-    #seller-logout, #reset-demo { width: auto; background: transparent; color: var(--authority); }
-    #seller-logout { margin: 24px; }
-    .catalogue { border-bottom: 1px solid var(--line); background: #0b131a; }
-    .compact-form { display: grid; grid-template-columns: 1fr auto; gap: 10px; padding: 0; margin: 18px 0 28px; }
-    .compact-form button { width: auto; align-self: end; }
-    .product-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-    .product-card { position: relative; min-width: 0; padding: 20px; border: 1px solid var(--line); background: var(--panel); transition: border-color 140ms ease, transform 140ms ease; }
-    .product-card:hover { border-color: var(--line-strong); transform: translateY(-2px); }
-    .product-card::before { content: "INVENTORY"; display: block; margin-bottom: 18px; color: #637682; font: 700 .58rem/1 var(--mono); letter-spacing: .11em; }
-    .product-card h3 { min-height: 2.4em; margin: 8px 0 12px; font: 400 1.3rem/1.12 var(--serif); }
-    .product-stock, .product-price { margin: 0; font: 700 .7rem/1.4 var(--mono); letter-spacing: .035em; text-transform: uppercase; }
-    .product-stock { display: inline-block; padding: 4px 7px; border: 1px solid #35665d; color: var(--authority); background: #10211e; }
-    .product-card[data-stock="empty"] .product-stock { border-color: #704e42; color: #e6a28b; background: #231511; }
-    .product-price { margin: 10px 0 20px; color: var(--decision); }
-    .cart-copy { display: grid; gap: 4px; }
-    .cart-copy small { color: var(--muted); }
-    .cart-controls { display: flex; align-items: center; gap: 8px; }
-    .cart-controls button { width: auto; padding: 6px 9px; }
-    .cart-controls .remove { border-color: var(--line-strong); background: transparent; color: var(--text); }
-    .order-panel { border-top: 1px solid var(--line); background: #0d161d; }
-    .order-panel button { margin-top: 12px; }
-    .order-status { border-color: var(--decision); color: #edc16f; }
-    .reset-strip { display: flex; justify-content: space-between; gap: 18px; align-items: center; padding: 18px 24px; border-top: 1px solid var(--line); color: var(--muted); background: #0b131a; font: .72rem/1.5 var(--mono); }
-    .seller-orders-section { padding: clamp(26px, 4vw, 44px); border-bottom: 1px solid var(--line); background: #0b131a; }
-    .section-heading { display: flex; justify-content: space-between; gap: 24px; align-items: start; }
-    .section-heading p { max-width: 62ch; margin: 6px 0 0; color: var(--muted); line-height: 1.55; }
-    .section-heading button { width: auto; }
-    .seller-orders { display: grid; gap: 12px; margin-top: 26px; }
-    .seller-order { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 22px; padding: 20px 20px 20px 24px; border: 1px solid var(--line); border-left: 3px solid var(--decision); background: var(--panel); }
-    .seller-order[data-state="accepted"] { border-left-color: var(--authority); }
-    .seller-order h3 { margin: 8px 0; font: 400 1.4rem/1.15 var(--serif); }
-    .seller-order p { margin: 6px 0; color: var(--muted); }
-    .seller-order code, .state-chip, .receipt-line { font: .7rem/1.4 var(--mono); overflow-wrap: anywhere; }
-    .seller-order code { color: #c6d2d8; }
-    .state-chip { display: inline-block; padding: 4px 7px; border: 1px solid #35665d; color: var(--authority) !important; text-transform: uppercase; }
-    .order-actions { display: grid; align-content: start; gap: 8px; min-width: 182px; }
-    .order-actions button { padding: 9px 12px; }
-    .receipt-line { color: var(--decision) !important; }
-    #buyer-products > p:only-child, #seller-orders > p:only-child { margin: 0; padding: 24px; border: 1px dashed var(--line-strong); color: var(--muted); font: .76rem/1.55 var(--mono); }
+    /* ------------------------------------------------------------------
+       AutoShop · precision parts workbench meets editorial control room
+       Tokens
+       ------------------------------------------------------------------ */
+    :root {
+      color-scheme: light;
+      --canvas: #f1f4f6;
+      --canvas-line: #e2e8ec;
+      --surface: #ffffff;
+      --surface-2: #f7f9fa;
+      --inset: #1d2b34;
+      --inset-2: #263743;
+      --inset-text: #dbe6ec;
+      --ink: #1d2b34;
+      --ink-2: #33444f;
+      --muted: #66747d;
+      --line: #d7dee3;
+      --line-strong: #aeb9c1;
+      --agent: #047857;
+      --agent-ink: #065f46;
+      --agent-tint: #e6f4ee;
+      --agent-line: #9ed3bd;
+      --human: #b45309;
+      --human-ink: #92400e;
+      --human-tint: #fbf0e1;
+      --human-line: #ecc48f;
+      --focus: #1e40af;
+      --focus-tint: #e8edfa;
+      --alert: #b42318;
+      --alert-tint: #fbebe9;
+      --alert-line: #f0b9b3;
+      --serif: "DM Serif Display", Fraunces, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      --sans: Manrope, Aptos, "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+      --mono: "DM Mono", "IBM Plex Mono", Consolas, "SF Mono", Menlo, monospace;
+      --radius: 3px;
+      --gutter: clamp(18px, 3.2vw, 40px);
+      --ease: cubic-bezier(.2, .7, .2, 1);
+      --fast: 160ms;
+      font-family: var(--sans);
+      font-size: 16px;
+      line-height: 1.5;
+      color: var(--ink);
+      background: var(--canvas);
+      -webkit-text-size-adjust: 100%;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background-color: var(--canvas);
+      background-image:
+        linear-gradient(var(--canvas-line) 1px, transparent 1px),
+        linear-gradient(90deg, var(--canvas-line) 1px, transparent 1px);
+      background-size: 32px 32px;
+      background-position: center top;
+      overflow-x: clip;
+    }
+    main { display: block; width: 100%; }
+    .wrap { width: min(1280px, 100% - 2 * var(--gutter)); margin-inline: auto; }
+    .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: clamp(16px, 2vw, 28px); }
+
+    /* ---------------------------------------------------------------- Type */
+    h1, h2, h3 { margin: 0; font-family: var(--serif); font-weight: 400; letter-spacing: -.015em; text-wrap: balance; }
+    h1 { font-size: clamp(2.4rem, 1.4rem + 3.2vw, 4rem); line-height: 1.02; }
+    h2 { font-size: clamp(1.45rem, 1.2rem + .8vw, 1.9rem); line-height: 1.15; }
+    h3 { font-size: 1.15rem; line-height: 1.25; }
+    p { margin: 0; }
+    a { color: var(--focus); text-decoration-thickness: 1px; text-underline-offset: 3px; transition: color var(--fast) var(--ease); }
+    a:hover { color: var(--ink); }
+    code, output, .mono { font-family: var(--mono); }
+    .eyebrow { display: flex; align-items: center; gap: 10px; color: var(--muted); font: 600 .72rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+    .eyebrow::before { content: ""; width: 22px; height: 1px; background: var(--line-strong); }
+    .lede { max-width: 54ch; margin-top: 16px; color: var(--ink-2); font-size: clamp(1rem, .95rem + .3vw, 1.125rem); line-height: 1.6; }
+    .hint { color: var(--muted); font-size: .9rem; line-height: 1.55; }
+
+    /* ------------------------------------------------------------- Top bar */
+    .topbar { position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: saturate(1.1) blur(6px); }
+    .topbar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 60px; }
+    .brand { display: inline-flex; align-items: baseline; gap: 12px; color: var(--ink); text-decoration: none; }
+    .brand strong { font: 400 1.35rem/1 var(--serif); letter-spacing: -.01em; }
+    .brand span { color: var(--muted); font: 500 .7rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    .portal-nav { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); }
+    .portal-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 2px; color: var(--ink-2); font-size: .875rem; font-weight: 600; text-decoration: none; transition: background var(--fast) var(--ease), color var(--fast) var(--ease); }
+    .portal-nav a:hover { background: var(--surface); color: var(--ink); }
+    main:has([data-role-view=buyer]:not([hidden])) .portal-nav a[href="/buyer"],
+    main:has([data-role-view=seller]:not([hidden])) .portal-nav a[href="/seller"] { background: var(--ink); color: #fff; }
+
+    /* --------------------------------------------------------------- Header */
+    .portal-header { padding: clamp(40px, 6vw, 72px) 0 clamp(28px, 4vw, 44px); }
+    .portal-header .grid { row-gap: 28px; align-items: end; }
+    .portal-intro { grid-column: 1 / span 7; }
+    .portal-intro h1 { margin-top: 18px; }
+    .portal-intro .lede + p { margin-top: 14px; font-size: .9rem; }
+    .machine { grid-column: 9 / -1; align-self: end; border: 1px solid var(--inset); border-radius: var(--radius); background: var(--inset); color: var(--inset-text); box-shadow: inset 0 1px 0 #ffffff14; }
+    .machine-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border-bottom: 1px solid #ffffff1f; font: 600 .68rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: #9fb3bd; }
+    .machine-head b { display: inline-flex; align-items: center; gap: 7px; color: #bcd9cc; font-weight: 600; }
+    .machine-head b::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #34d399; box-shadow: 0 0 0 3px #34d39926; }
+    .machine .status { display: block; min-height: 3.2em; padding: 14px 14px 16px; font: 500 .84rem/1.5 var(--mono); color: #e9f5ef; overflow-wrap: anywhere; }
+    .machine .status::before { content: "› "; color: #6ee7b7; }
+
+    /* ---------------------------------------------------- Authority circuit */
+    .authority-rail { padding: 0 0 clamp(28px, 4vw, 44px); }
+    .circuit { position: relative; display: grid; grid-template-columns: auto 1fr; gap: 20px 28px; align-items: start; padding: 20px 24px 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+    .circuit-key { display: grid; gap: 10px; min-width: 150px; padding-top: 2px; }
+    .circuit-key strong { font: 600 .72rem/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); }
+    .circuit-key span { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: .78rem; line-height: 1.3; }
+    .circuit-key span::before { content: ""; flex: none; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--agent); background: var(--surface); }
+    .circuit-key .key-human::before { border-color: var(--human); background: var(--human); }
+    .authority-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin: 0; padding: 0; list-style: none; counter-reset: step; }
+    .authority-steps li { position: relative; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 4px 12px; padding-right: 24px; }
+    .authority-steps span { grid-row: 1 / 4; display: grid; place-items: center; width: 30px; height: 30px; border: 2px solid var(--agent); border-radius: 50%; background: var(--surface); color: var(--agent-ink); font: 600 .68rem/1 var(--mono); }
+    .authority-steps li::before { content: ""; position: absolute; top: 15px; left: 30px; right: 0; height: 2px; background: repeating-linear-gradient(90deg, var(--agent-line) 0 6px, transparent 6px 10px); }
+    .authority-steps li:last-child::before { display: none; }
+    .authority-steps li:nth-last-child(2)::before { background: linear-gradient(90deg, var(--agent-line), var(--human-line)); }
+    .authority-steps li:last-child span { border-color: var(--human); background: var(--human); color: #fff; }
+    .authority-steps strong { display: block; position: relative; z-index: 1; padding-right: 8px; margin-right: -8px; background: var(--surface); width: fit-content; font-size: .95rem; font-weight: 700; line-height: 1.25; }
+    .authority-steps small { color: var(--muted); font-size: .8rem; line-height: 1.4; }
+    .authority-steps b { justify-self: start; margin-top: 2px; padding: 3px 7px; border: 1px solid var(--agent-line); border-radius: 2px; color: var(--agent-ink); background: var(--agent-tint); font: 600 .62rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    .authority-steps li:last-child b { border-color: var(--human-line); color: var(--human-ink); background: var(--human-tint); }
+
+    /* -------------------------------------------------------------- Surfaces */
+    .panel { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+    .panel-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px 20px; padding: 22px 24px 18px; border-bottom: 1px solid var(--line); }
+    .panel-head .hint { max-width: 60ch; margin-top: 6px; }
+    .panel-body { padding: 22px 24px 26px; }
+    .rail { display: grid; align-content: start; }
+    .rail > * + * { border-top: 1px solid var(--line); }
+    .rail-block { padding: 22px 24px 24px; }
+    .rail-block h2 { font-size: 1.35rem; }
+    .rail-block > .hint { margin-top: 6px; }
+
+    /* ---------------------------------------------------------------- Forms */
+    fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+    fieldset + fieldset, fieldset + button, .field + .field { margin-top: 20px; }
+    legend { width: 100%; padding: 0 0 12px; margin-bottom: 4px; border-bottom: 1px solid var(--line); font: 600 .72rem/1.3 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-2); }
+    .field { display: grid; gap: 7px; margin-top: 16px; color: var(--ink-2); font-size: .84rem; font-weight: 600; line-height: 1.3; }
+    input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="search"] {
+      width: 100%; min-height: 46px; padding: 10px 13px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--ink); font: 500 1rem/1.4 var(--sans);
+      transition: border-color var(--fast) var(--ease), box-shadow var(--fast) var(--ease), background var(--fast) var(--ease);
+    }
+    input[type="number"] { font-family: var(--mono); font-size: .95rem; }
+    input:hover:not(:disabled) { border-color: var(--ink-2); }
+    input::placeholder { color: #8d99a1; }
+    input:disabled { background: var(--surface-2); color: var(--muted); border-style: dashed; cursor: not-allowed; }
+    fieldset:disabled { opacity: .62; }
+    fieldset:disabled legend { color: var(--muted); }
+    input[type="radio"], input[type="checkbox"] { width: 20px; height: 20px; margin: 0; accent-color: var(--agent); cursor: pointer; }
+    input[type="checkbox"] { accent-color: var(--human); }
+    .mode-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+    .mode-option { position: relative; display: grid; grid-template-columns: 20px 1fr; gap: 6px 10px; align-items: start; min-height: 44px; padding: 14px 14px 14px 12px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); cursor: pointer; transition: border-color var(--fast) var(--ease), background var(--fast) var(--ease), box-shadow var(--fast) var(--ease); }
+    .mode-option:hover { border-color: var(--ink-2); }
+    .mode-option input { margin-top: 1px; }
+    .mode-option span { font-weight: 700; line-height: 1.3; }
+    .mode-option small { grid-column: 2; color: var(--muted); font-size: .8rem; line-height: 1.4; }
+    .mode-option:has(input:checked) { border-color: var(--agent); background: var(--agent-tint); box-shadow: inset 0 0 0 1px var(--agent); }
+    .mode-option:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
+    .mode-note { margin-top: 12px; padding-left: 12px; border-left: 2px solid var(--human-line); color: var(--ink-2); font-size: .85rem; line-height: 1.5; }
+
+    /* -------------------------------------------------------------- Buttons */
+    button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 46px; padding: 10px 18px; border: 1px solid var(--agent); border-radius: var(--radius); background: var(--agent); color: #fff; font: 700 .9rem/1.2 var(--sans); letter-spacing: .005em; text-align: center; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background var(--fast) var(--ease), border-color var(--fast) var(--ease), color var(--fast) var(--ease), transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease); }
+    button:hover:not(:disabled) { background: var(--agent-ink); border-color: var(--agent-ink); }
+    button:active:not(:disabled) { transform: translateY(1px); }
+    button:disabled { cursor: not-allowed; border-color: var(--line); border-style: dashed; background: var(--surface-2); color: var(--muted); }
+    .btn-secondary, #product-search button, #seller-refresh-orders, .cart-controls button, .product-card button { border-color: var(--line-strong); background: var(--surface); color: var(--ink); }
+    .btn-secondary:hover:not(:disabled), #product-search button:hover:not(:disabled), #seller-refresh-orders:hover:not(:disabled), .cart-controls button:hover:not(:disabled), .product-card button:hover:not(:disabled) { border-color: var(--ink); background: var(--ink); color: #fff; }
+    .btn-ghost, #seller-logout, #reset-demo, .cart-controls .remove { width: auto; border-color: transparent; background: transparent; color: var(--ink-2); }
+    .btn-ghost:hover:not(:disabled), #seller-logout:hover:not(:disabled), .cart-controls .remove:hover:not(:disabled) { border-color: var(--line-strong); background: var(--surface); color: var(--ink); }
+    #reset-demo { color: var(--alert); }
+    #reset-demo:hover:not(:disabled) { border-color: var(--alert-line); background: var(--alert-tint); color: var(--alert); }
+    /* High-consequence: anything that crosses the human-decision boundary */
+    #buyer-confirmation button[type="submit"], #buyer-submit-order, #seller-approval button[type="submit"], #seller-commit-approved { border-color: var(--human); background: var(--human); color: #fff; box-shadow: inset 0 0 0 1px #ffffff2e; }
+    #buyer-confirmation button[type="submit"]:hover:not(:disabled), #buyer-submit-order:hover:not(:disabled), #seller-approval button[type="submit"]:hover:not(:disabled), #seller-commit-approved:hover:not(:disabled) { border-color: var(--human-ink); background: var(--human-ink); }
+    #buyer-confirmation button[type="submit"]::before, #buyer-submit-order::before, #seller-approval button[type="submit"]::before, #seller-commit-approved::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px #ffffff40; }
+    #buyer-confirmation button[type="submit"]:disabled::before, #buyer-submit-order:disabled::before, #seller-approval button[type="submit"]:disabled::before, #seller-commit-approved:disabled::before { background: var(--line-strong); box-shadow: none; }
+    .order-actions button[data-approve-action] { border-color: var(--human); background: var(--human-tint); color: var(--human-ink); }
+    .order-actions button[data-approve-action]:hover:not(:disabled) { background: var(--human); border-color: var(--human); color: #fff; }
+    #seller-commit-approved { margin-top: 14px; }
+    #buyer-submit-order { margin-top: 14px; }
+
+    /* ------------------------------------------------------- Status outputs */
+    .confirmation-status, .order-status { display: block; min-height: 3.2em; margin-top: 14px; padding: 11px 13px 11px 14px; border: 1px solid var(--line); border-left: 3px solid var(--focus); border-radius: var(--radius); background: var(--surface-2); color: var(--ink-2); font: 500 .8rem/1.55 var(--mono); overflow-wrap: anywhere; transition: border-color var(--fast) var(--ease), background var(--fast) var(--ease); }
+    .confirmation-status:empty, .order-status:empty { display: none; }
+    .order-status, #seller-approval-status { border-left-color: var(--human); background: var(--human-tint); color: var(--human-ink); border-color: var(--human-line); }
+    #seller-login-status:empty { display: none; }
     [aria-busy="true"] { cursor: progress; }
-    [hidden] { display: none !important; }
+    form[aria-busy="true"] .confirmation-status { border-left-color: var(--line-strong); background: linear-gradient(90deg, var(--surface-2) 0 40%, #fff 50%, var(--surface-2) 60% 100%) 0 0 / 250% 100%; animation: sweep 1.2s linear infinite; }
+
+    /* ------------------------------------------------------- Buyer layout */
+    .buyer-grid { row-gap: 24px; align-items: start; padding-bottom: clamp(28px, 4vw, 44px); }
+    .catalogue { grid-column: 1 / span 8; }
+    .buyer-checkout { grid-column: 9 / -1; position: sticky; top: 76px; }
+    .compact-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; padding: 0; margin: 0 0 22px; }
+    .compact-form .field { margin-top: 0; }
+    .compact-form button { width: auto; min-width: 110px; }
+    .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 12px; }
+    .product-card { position: relative; display: grid; grid-template-rows: auto 1fr auto auto; min-width: 0; padding: 16px 16px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); transition: border-color var(--fast) var(--ease), transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease); }
+    .product-card:hover { border-color: var(--line-strong); box-shadow: 0 6px 18px -12px #1d2b3466; transform: translateY(-1px); }
+    .product-card h3 { margin: 12px 0 10px; font: 700 1rem/1.35 var(--sans); letter-spacing: 0; }
+    .product-stock, .product-price { margin: 0; font-family: var(--mono); }
+    .product-stock { justify-self: start; display: inline-flex; align-items: center; gap: 7px; padding: 4px 8px; border: 1px solid var(--agent-line); border-radius: 2px; background: var(--agent-tint); color: var(--agent-ink); font-size: .68rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+    .product-stock::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--agent); }
+    .product-card[data-stock="empty"] .product-stock { border-color: var(--alert-line); background: var(--alert-tint); color: var(--alert); }
+    .product-card[data-stock="empty"] .product-stock::before { background: var(--alert); }
+    .product-card[data-stock="empty"] h3 { color: var(--muted); }
+    .product-price { margin: 0 0 14px; padding-top: 12px; border-top: 1px dashed var(--line); font-size: 1.1rem; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+    .product-card button { min-height: 44px; padding: 8px 14px; font-size: .85rem; }
+    .cart { min-height: 72px; margin: 18px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--line); }
+    .cart li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 14px; padding: 13px 0; border-bottom: 1px solid var(--line); }
+    .cart-copy { display: grid; gap: 3px; min-width: 0; flex: 1 1 150px; }
+    .cart-copy strong { font-size: .92rem; line-height: 1.3; }
+    .cart-copy small { color: var(--muted); font: 500 .78rem/1.3 var(--mono); font-variant-numeric: tabular-nums; }
+    .cart-controls { display: flex; align-items: center; gap: 6px; }
+    .cart-controls button { width: 44px; min-width: 44px; min-height: 44px; padding: 0; font-size: 1.05rem; font-weight: 600; }
+    .cart-controls b { min-width: 28px; text-align: center; font: 600 .95rem/1 var(--mono); font-variant-numeric: tabular-nums; }
+    .cart-controls .remove { width: auto; min-width: 0; padding: 0 10px; font-size: .8rem; font-weight: 600; color: var(--muted); }
+    .cart li:not(:has(.cart-controls)) { display: block; padding: 22px 16px; border: 1px dashed var(--line-strong); border-radius: var(--radius); margin-top: 12px; text-align: center; color: var(--muted); font-size: .88rem; }
+    .cart:has(li:not(:has(.cart-controls))) { border-top: 0; margin-top: 8px; }
+    .total { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 14px; padding-top: 4px; }
+    .total span { color: var(--muted); font: 600 .72rem/1.3 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+    .total strong { font: 400 1.7rem/1 var(--serif); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+    .order-panel h2 { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+    /* ------------------------------------------------------ Seller layout */
+    .seller-login { grid-column: 1 / span 6; margin-bottom: clamp(36px, 6vw, 64px); }
+    .seller-login .panel-body { padding-top: 6px; }
+    .seller-login input { padding-right: 48px; }
+    .seller-login button[type="submit"] { margin-top: 24px; }
+    .seller-grid { row-gap: 24px; align-items: start; }
+    .seller-console { grid-column: 1 / -1; min-width: 0; }
+    .seller-orders-section { grid-column: 1 / span 8; }
+    .seller-rail { grid-column: 9 / -1; }
+    .section-heading { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px 20px; }
+    .section-heading .hint { max-width: 58ch; margin-top: 6px; }
+    .section-heading button { width: auto; min-width: 140px; }
+    .seller-orders { display: grid; gap: 10px; }
+    .seller-order { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px 24px; padding: 16px 18px 16px 20px; border: 1px solid var(--line); border-left: 3px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); transition: border-color var(--fast) var(--ease); }
+    .seller-order[data-state="pending"] { border-left-color: var(--human); }
+    .seller-order[data-state="eligible"] { border-left-color: var(--focus); }
+    .seller-order[data-state="accepted"] { border-left-color: var(--agent); }
+    .seller-order[data-state="cancelled"], .seller-order[data-state="rejected"] { border-left-color: var(--alert); }
+    .seller-order > div:first-child { display: grid; gap: 6px; min-width: 0; }
+    .seller-order code { color: var(--muted); font: 500 .72rem/1.4 var(--mono); letter-spacing: .02em; overflow-wrap: anywhere; }
+    .seller-order h3 { margin: 0; font: 400 1.35rem/1.15 var(--serif); font-variant-numeric: tabular-nums; }
+    .seller-order p { margin: 0; color: var(--muted); font-size: .88rem; line-height: 1.45; overflow-wrap: anywhere; }
+    .state-chip, .receipt-line { justify-self: start; display: inline-flex; align-items: center; gap: 7px; margin-top: 4px !important; padding: 4px 8px; border: 1px solid var(--line-strong); border-radius: 2px; background: var(--surface-2); color: var(--ink-2) !important; font: 600 .68rem/1.3 var(--mono) !important; letter-spacing: .06em; text-transform: uppercase; overflow-wrap: anywhere; }
+    .state-chip::before { content: ""; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--line-strong); }
+    .seller-order[data-state="pending"] .state-chip { border-color: var(--human-line); background: var(--human-tint); color: var(--human-ink) !important; }
+    .seller-order[data-state="pending"] .state-chip::before { background: var(--human); }
+    .seller-order[data-state="eligible"] .state-chip { border-color: #b8c6ef; background: var(--focus-tint); color: var(--focus) !important; }
+    .seller-order[data-state="eligible"] .state-chip::before { background: var(--focus); }
+    .seller-order[data-state="accepted"] .state-chip { border-color: var(--agent-line); background: var(--agent-tint); color: var(--agent-ink) !important; }
+    .seller-order[data-state="accepted"] .state-chip::before { background: var(--agent); }
+    .seller-order[data-state="cancelled"] .state-chip, .seller-order[data-state="rejected"] .state-chip { border-color: var(--alert-line); background: var(--alert-tint); color: var(--alert) !important; }
+    .seller-order[data-state="cancelled"] .state-chip::before, .seller-order[data-state="rejected"] .state-chip::before { background: var(--alert); }
+    .receipt-line { border-color: var(--agent-line); background: var(--agent-tint); color: var(--agent-ink) !important; text-transform: none; letter-spacing: .01em; }
+    .receipt-line::before { content: "✓"; font-weight: 700; }
+    .order-actions { display: grid; align-content: start; gap: 8px; min-width: 200px; }
+    .order-actions button { min-height: 44px; padding: 8px 14px; font-size: .85rem; }
+    .order-actions:empty { display: none; }
+    .seller-order:has(.order-actions:empty) { grid-template-columns: minmax(0, 1fr); }
+    .mandate-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+    .mandate-grid .field { margin-top: 16px; }
+    .mandate-version { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 18px 0 0; padding: 10px 12px; border: 1px dashed var(--line-strong); border-radius: var(--radius); color: var(--muted); font-size: .82rem; }
+    .mandate-version output { color: var(--ink); font: 600 .85rem/1 var(--mono); }
+    #seller-mandate button[type="submit"] { margin-top: 16px; }
+    #seller-approval { position: relative; background: linear-gradient(var(--human-tint), var(--surface) 140px); }
+    #seller-approval::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--human); }
+    #seller-approval legend { border-bottom-color: var(--human-line); color: var(--human-ink); }
+    .approval-warning { display: grid; grid-template-columns: auto 1fr; gap: 12px; margin-top: 16px; padding: 12px 14px; border: 1px solid var(--human-line); border-radius: var(--radius); background: var(--surface); color: var(--ink-2); font-size: .88rem; line-height: 1.5; }
+    .approval-warning::before { content: "!"; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--human); color: #fff; font: 700 .85rem/1 var(--mono); }
+    .approval-confirm { display: grid; grid-template-columns: 20px 1fr; gap: 12px; align-items: start; min-height: 44px; margin: 18px 0; padding: 12px 14px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); line-height: 1.45; font-size: .92rem; cursor: pointer; transition: border-color var(--fast) var(--ease), background var(--fast) var(--ease); }
+    .approval-confirm:hover { border-color: var(--human); }
+    .approval-confirm:has(input:checked) { border-color: var(--human); background: var(--human-tint); }
+    .approval-confirm:has(input:focus-visible) { outline: 3px solid var(--focus); outline-offset: 2px; }
+    .approval-confirm input { margin-top: 2px; }
+    .console-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; margin-top: 24px; padding: 14px 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--muted); font-size: .85rem; }
+    .console-footer div { display: flex; flex-wrap: wrap; gap: 8px; }
+    .console-footer button { min-height: 44px; padding: 8px 14px; font-size: .85rem; }
+
+    /* ------------------------------------------------- Empty / loading rows */
+    #buyer-products > p:only-child, #seller-orders > p:only-child { grid-column: 1 / -1; margin: 0; padding: 32px 20px; border: 1px dashed var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--muted); font-size: .9rem; line-height: 1.5; text-align: center; }
+    #buyer-products > p:only-child::before, #seller-orders > p:only-child::before { content: ""; display: block; width: 28px; height: 2px; margin: 0 auto 14px; background: var(--line-strong); }
+
+    /* ------------------------------------------------------------- Footers */
+    .reset-strip, .contract-footer { margin: 0 0 clamp(36px, 6vw, 64px); padding: 14px 0 0; border-top: 1px solid var(--line); color: var(--muted); font: 500 .74rem/1.6 var(--mono); letter-spacing: .02em; }
+    .contract-footer { margin-top: 24px; }
+
+    /* ------------------------------------------------------------ Motion */
+    [data-role-view] { animation: rise .32s var(--ease) both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    @keyframes sweep { from { background-position: 100% 0; } to { background-position: 0 0; } }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+      .topbar { backdrop-filter: none; }
+    }
+
+    /* ------------------------------------------------------------ Focus */
     :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
-    input:focus-visible { border-color: var(--focus); box-shadow: 0 0 0 3px #9bbdff2e; outline: 0; }
-    @media (max-width: 820px) { body { padding: 0; } main { border-inline: 0; } header { grid-template-columns: 1fr; } .mandate-grid, .product-grid, .seller-order, .buyer-grid { grid-template-columns: 1fr; } .review { border-right: 0; border-bottom: 1px solid var(--line); } .section-heading { display: grid; } .section-heading button, .order-actions { width: 100%; min-width: 0; } }
-    @media (max-width: 520px) { nav, .reset-strip { align-items: flex-start; padding-inline: 18px; } nav div { gap: 14px; } header, .review, form, .catalogue, .order-panel, .seller-orders-section { padding: 26px 20px; } h1 { font-size: clamp(3.2rem, 18vw, 5rem); } .mode-options, .compact-form { grid-template-columns: 1fr; } .compact-form button { width: 100%; } .cart li, .reset-strip { display: grid; } .cart-controls { flex-wrap: wrap; } }
-    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+    input:focus-visible { border-color: var(--focus); box-shadow: 0 0 0 3px #1e40af26; outline: 0; }
+    button:focus-visible { outline-offset: 2px; }
+    [hidden] { display: none !important; }
+
+    /* ------------------------------------------------------- Breakpoints */
+    @media (max-width: 1100px) {
+      .portal-intro { grid-column: 1 / span 7; }
+      .machine { grid-column: 8 / -1; }
+      .catalogue, .seller-orders-section { grid-column: 1 / span 7; }
+      .buyer-checkout, .seller-rail { grid-column: 8 / -1; }
+      .product-grid { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+      .order-actions { min-width: 170px; }
+    }
+    @media (max-width: 900px) {
+      .portal-header .grid { align-items: start; }
+      .portal-intro, .machine, .catalogue, .buyer-checkout, .seller-orders-section, .seller-rail, .seller-login { grid-column: 1 / -1; }
+      .buyer-checkout { position: static; }
+      .circuit { grid-template-columns: 1fr; gap: 18px; }
+      .circuit-key { grid-auto-flow: column; justify-content: start; gap: 18px; min-width: 0; }
+      .seller-order { grid-template-columns: 1fr; }
+      .order-actions { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); min-width: 0; }
+    }
+    @media (max-width: 640px) {
+      .topbar .wrap { min-height: 56px; }
+      .brand span { display: none; }
+      .portal-nav a { padding: 0 13px; }
+      .authority-steps { grid-template-columns: 1fr; gap: 18px; }
+      .authority-steps li { padding-right: 0; }
+      .authority-steps li::before { top: 30px; bottom: -18px; left: 14px; right: auto; width: 2px; height: auto; background: repeating-linear-gradient(180deg, var(--agent-line) 0 6px, transparent 6px 10px); }
+      .authority-steps li:nth-last-child(2)::before { background: linear-gradient(180deg, var(--agent-line), var(--human-line)); }
+      .circuit-key { grid-auto-flow: row; gap: 8px; }
+      .mode-options, .mandate-grid { grid-template-columns: 1fr; }
+      .compact-form { grid-template-columns: 1fr; }
+      .compact-form button { width: 100%; }
+      .panel-head, .panel-body, .rail-block { padding-inline: 18px; }
+      .cart-controls { width: 100%; justify-content: flex-start; }
+      .cart-controls .remove { margin-left: auto; }
+      .section-heading button { width: 100%; }
+      .console-footer, .console-footer div { display: grid; }
+      .console-footer button { width: 100%; }
+      .total strong { font-size: 1.5rem; }
+    }
   </style>
 </head>
 <body>
   <main>
-    <nav aria-label="Portal navigation">
-      <strong>AutoShop</strong>
-      <div><a href="/buyer">Buyer</a><a href="/seller">Seller</a></div>
+    <nav class="topbar" aria-label="Portal navigation">
+      <div class="wrap">
+        <a class="brand" href="/buyer"><strong>AutoShop</strong><span>Synthetic parts · bounded authority</span></a>
+        <div class="portal-nav"><a href="/buyer">Buyer</a><a href="/seller">Seller</a></div>
+      </div>
     </nav>
 
     <section data-role-view="seller">
-      <header>
-        <div>
-          <h1>Seller portal</h1>
-          <p>Sign in to expose the synthetic mandate and four seller tools. Logout or expiry removes them.</p>
-          <p><a id="leave-seller" href="/buyer">Leave seller portal</a></p>
-        </div>
-        <aside class="authority-rail" aria-label="Seller authority boundary">
-          <output class="status" id="seller-status" aria-live="polite">Checking seller session…</output>
-          <ol class="authority-steps">
-            <li><span>01</span><strong>Authenticate</strong><small>Tools stay hidden until sign-in.</small></li>
-            <li><span>02</span><strong>Enforce policy</strong><small>Every order meets the live mandate.</small></li>
-            <li><span>03</span><strong>Approve exception</strong><small>One visible, exact-action boundary.</small></li>
-          </ol>
-        </aside>
-      </header>
-      <form class="seller-login" id="seller-login" hidden>
-        <h2>Seller sign in</h2>
-        <p>The demo credential is supplied privately. It is never stored in this page or repository.</p>
-        <label class="field">Username<input name="username" type="text" autocomplete="username" maxlength="64" required></label>
-        <label class="field">Password<input name="password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required></label>
-        <button type="submit">Sign in to seller portal</button>
-        <output class="confirmation-status" id="seller-login-status" aria-live="polite"></output>
-      </form>
-      <div class="seller-console" id="seller-console" hidden>
-        <section class="seller-orders-section" aria-labelledby="seller-orders-title">
-          <div class="section-heading">
-            <div><h2 id="seller-orders-title">Order decision queue</h2><p>Buyer-authored fields are untrusted. Every decision is re-checked against live stock and mandate state.</p></div>
-            <button id="seller-refresh-orders" type="button">Refresh orders</button>
+      <header class="portal-header">
+        <div class="wrap grid">
+          <div class="portal-intro">
+            <p class="eyebrow">Seller side · policy and approval</p>
+            <h1>Seller portal</h1>
+            <p class="lede">Sign in to expose the synthetic mandate and four seller tools. Logout or expiry removes them.</p>
+            <p><a id="leave-seller" href="/buyer">Leave seller portal</a></p>
           </div>
-          <div class="seller-orders" id="seller-orders" aria-live="polite"><p>Loading orders…</p></div>
-        </section>
-        <form id="seller-mandate" aria-busy="false">
-          <fieldset id="seller-mandate-fields" disabled>
-            <legend>Edit mandate limits</legend>
-            <div class="mandate-grid">
-              <label class="field">Items per order<input name="max_items_per_order" type="number" min="1" max="20" step="1" required></label>
-              <label class="field">Order total (USD)<input name="max_total_dollars" type="number" min="0" max="1000" step="0.01" required></label>
-              <label class="field">Discount percent<input name="max_discount_percent" type="number" min="0" max="100" step="1" required></label>
-              <label class="field">Stock remaining<input name="min_stock_remaining" type="number" min="0" max="100" step="1" required></label>
-            </div>
-            <p class="mandate-version">Current version <output id="mandate-version">—</output></p>
-            <button type="submit">Save mandate</button>
-            <output class="confirmation-status" id="mandate-status" aria-live="polite" aria-atomic="true"></output>
-          </fieldset>
+          <div class="machine">
+            <div class="machine-head"><b>WebMCP</b><span>Seller session</span></div>
+            <output class="status" id="seller-status" aria-live="polite">Checking seller session…</output>
+          </div>
+        </div>
+      </header>
+      <aside class="authority-rail" aria-label="Seller authority boundary">
+        <div class="wrap">
+          <div class="circuit">
+            <div class="circuit-key"><strong>Authority circuit</strong><span>Agent may act inside the mandate</span><span class="key-human">Human decides</span></div>
+            <ol class="authority-steps">
+              <li><span>01</span><strong>Authenticate</strong><small>Tools stay hidden until sign-in.</small><b>Gate</b></li>
+              <li><span>02</span><strong>Enforce mandate</strong><small>Every order meets the live numerical mandate.</small><b>Agent scope</b></li>
+              <li><span>03</span><strong>Approve exception</strong><small>One visible, exact-action boundary.</small><b>Human decision</b></li>
+            </ol>
+          </div>
+        </div>
+      </aside>
+      <div class="wrap grid seller-grid">
+        <form class="seller-login panel" id="seller-login" hidden>
+          <div class="panel-head"><div><h2>Seller sign in</h2><p class="hint">The demo credential is supplied privately. It is never stored in this page or repository.</p></div></div>
+          <div class="panel-body">
+            <label class="field">Username<input name="username" type="text" autocomplete="username" maxlength="64" required></label>
+            <label class="field">Password<input name="password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required></label>
+            <button type="submit">Sign in to seller portal</button>
+            <output class="confirmation-status" id="seller-login-status" aria-live="polite"></output>
+          </div>
         </form>
-        <form id="seller-approval" aria-busy="false">
-          <fieldset id="seller-approval-fields" disabled>
-            <legend>Exceptional action approval</legend>
-            <p class="approval-warning">This authorizes one pending action outside the current mandate. A successful commit changes synthetic stock and creates an immutable receipt.</p>
-            <label class="field">Pending action ID<input name="action_id" type="text" maxlength="64" pattern="[A-Za-z0-9_-]+" required></label>
-            <label class="approval-confirm"><input name="confirm" type="checkbox" value="APPROVE" required><span>I reviewed this action and approve this one exceptional commit.</span></label>
-            <button type="submit">Approve this exceptional action</button>
-            <output class="confirmation-status" id="seller-approval-status" aria-live="polite" aria-atomic="true">No exceptional action approved.</output>
-          </fieldset>
-          <button id="seller-commit-approved" type="button" hidden>Commit approved action</button>
-        </form>
-        <div class="reset-strip"><span>Seller-controlled reset restores deterministic seeded demo data.</span><button id="reset-demo" type="button">Reset demo data</button></div>
-        <button id="seller-logout" type="button">Log out</button>
-        <footer>Seller tools: 4 role-scoped contracts · strict inputs · removed on logout, expiry, or exit</footer>
+        <div class="seller-console" id="seller-console" hidden>
+          <div class="grid seller-grid">
+            <section class="seller-orders-section panel" aria-labelledby="seller-orders-title">
+              <div class="panel-head section-heading">
+                <div><h2 id="seller-orders-title">Order decision queue</h2><p class="hint">Buyer-authored fields are untrusted. Every decision is re-checked against live stock and mandate state.</p></div>
+                <button id="seller-refresh-orders" type="button">Refresh orders</button>
+              </div>
+              <div class="panel-body">
+                <div class="seller-orders" id="seller-orders" aria-live="polite"><p>Loading orders…</p></div>
+              </div>
+            </section>
+            <aside class="seller-rail panel rail" aria-label="Mandate and exceptional approval">
+              <form class="rail-block" id="seller-mandate" aria-busy="false">
+                <fieldset id="seller-mandate-fields" disabled>
+                  <legend>Edit mandate limits</legend>
+                  <div class="mandate-grid">
+                    <label class="field">Items per order<input name="max_items_per_order" type="number" min="1" max="20" step="1" required></label>
+                    <label class="field">Order total (USD)<input name="max_total_dollars" type="number" min="0" max="1000" step="0.01" required></label>
+                    <label class="field">Discount percent<input name="max_discount_percent" type="number" min="0" max="100" step="1" required></label>
+                    <label class="field">Stock remaining<input name="min_stock_remaining" type="number" min="0" max="100" step="1" required></label>
+                  </div>
+                  <p class="mandate-version"><span>Current version</span><output id="mandate-version">—</output></p>
+                  <button type="submit">Save mandate</button>
+                  <output class="confirmation-status" id="mandate-status" aria-live="polite" aria-atomic="true"></output>
+                </fieldset>
+              </form>
+              <form class="rail-block" id="seller-approval" aria-busy="false">
+                <fieldset id="seller-approval-fields" disabled>
+                  <legend>Exceptional action approval</legend>
+                  <p class="approval-warning">This authorizes one pending action outside the current mandate. A successful commit changes synthetic stock and creates an immutable receipt.</p>
+                  <label class="field">Pending action ID<input name="action_id" type="text" maxlength="64" pattern="[A-Za-z0-9_-]+" required></label>
+                  <label class="approval-confirm"><input name="confirm" type="checkbox" value="APPROVE" required><span>I reviewed this action and approve this one exceptional commit.</span></label>
+                  <button type="submit">Approve this exceptional action</button>
+                  <output class="confirmation-status" id="seller-approval-status" aria-live="polite" aria-atomic="true">No exceptional action approved.</output>
+                </fieldset>
+                <button id="seller-commit-approved" type="button" hidden>Commit approved action</button>
+              </form>
+            </aside>
+          </div>
+          <div class="console-footer">
+            <span>Seller-controlled reset restores deterministic seeded demo data.</span>
+            <div><button id="reset-demo" type="button">Reset demo data</button><button id="seller-logout" type="button">Log out</button></div>
+          </div>
+          <footer class="contract-footer">Seller tools: 4 role-scoped contracts · strict inputs · removed on logout, expiry, or exit</footer>
+        </div>
       </div>
     </section>
 
     <section data-role-view="buyer" hidden>
-      <header>
-        <div>
-          <h1>Buyer portal</h1>
-          <p>Review the exact cart, choose how much the agent may do, then confirm once before any personal data or final order can be submitted.</p>
+      <header class="portal-header">
+        <div class="wrap grid">
+          <div class="portal-intro">
+            <p class="eyebrow">Buyer side · browse, scope, confirm</p>
+            <h1>Buyer portal</h1>
+            <p class="lede">Review the exact cart, choose how much the agent may do, then confirm once before any personal data or final order can be submitted.</p>
+          </div>
+          <div class="machine">
+            <div class="machine-head"><b>WebMCP</b><span>Buyer isolation</span></div>
+            <output class="status" id="buyer-status" aria-live="polite">Checking isolation…</output>
+          </div>
         </div>
-        <aside class="authority-rail" aria-label="Buyer authority boundary">
-          <output class="status" id="buyer-status" aria-live="polite">Checking isolation…</output>
-          <ol class="authority-steps">
-            <li><span>01</span><strong>Browse</strong><small>The agent may inspect seeded stock.</small></li>
-            <li><span>02</span><strong>Choose scope</strong><small>Ask or Auto controls cart changes.</small></li>
-            <li><span>03</span><strong>Confirm</strong><small>The final order always stops for you.</small></li>
-          </ol>
-        </aside>
       </header>
-      <section class="catalogue" aria-labelledby="catalogue-title">
-        <h2 id="catalogue-title">Build the cart</h2>
-        <p>Search the seeded catalogue. Stock and totals stay server-authoritative.</p>
-        <form class="compact-form" id="product-search" role="search">
-          <label class="field">Find a computer part<input name="query" type="search" maxlength="80" placeholder="RAM, SSD, Ryzen…"></label>
-          <button type="submit">Search</button>
-        </form>
-        <div class="product-grid" id="buyer-products" aria-live="polite"><p>Loading catalogue…</p></div>
-      </section>
-      <div class="buyer-grid">
-        <section class="review" aria-labelledby="cart-title">
-          <h2 id="cart-title">Your synthetic cart</h2>
-          <p>Confirmation is bound to this cart version. A later cart change cancels it.</p>
-          <ul class="cart" id="buyer-cart"><li>Loading cart…</li></ul>
-          <p class="total"><span>Synthetic total</span><strong id="buyer-total">—</strong></p>
+      <aside class="authority-rail" aria-label="Buyer authority boundary">
+        <div class="wrap">
+          <div class="circuit">
+            <div class="circuit-key"><strong>Authority circuit</strong><span>Agent may act in scope</span><span class="key-human">Human decides</span></div>
+            <ol class="authority-steps">
+              <li><span>01</span><strong>Browse</strong><small>The agent may inspect seeded stock.</small><b>Agent scope</b></li>
+              <li><span>02</span><strong>Choose scope</strong><small>Ask or Auto controls cart changes.</small><b>Agent scope</b></li>
+              <li><span>03</span><strong>Confirm</strong><small>The final order always stops for you.</small><b>Human decision</b></li>
+            </ol>
+          </div>
+        </div>
+      </aside>
+      <div class="wrap grid buyer-grid">
+        <section class="catalogue panel" aria-labelledby="catalogue-title">
+          <div class="panel-head"><div><h2 id="catalogue-title">Build the cart</h2><p class="hint">Search the seeded catalogue. Stock and totals stay server-authoritative.</p></div></div>
+          <div class="panel-body">
+            <form class="compact-form" id="product-search" role="search">
+              <label class="field">Find a computer part<input name="query" type="search" maxlength="80" placeholder="RAM, SSD, Ryzen…"></label>
+              <button type="submit">Search</button>
+            </form>
+            <div class="product-grid" id="buyer-products" aria-live="polite"><p>Loading catalogue…</p></div>
+          </div>
         </section>
-        <div class="buyer-checkout">
-          <form id="buyer-confirmation">
+        <div class="buyer-checkout panel rail">
+          <section class="review rail-block" aria-labelledby="cart-title">
+            <h2 id="cart-title">Your synthetic cart</h2>
+            <p class="hint">Confirmation is bound to this cart version. A later cart change cancels it.</p>
+            <ul class="cart" id="buyer-cart"><li>Loading cart…</li></ul>
+            <p class="total"><span>Synthetic total</span><strong id="buyer-total">—</strong></p>
+          </section>
+          <form class="rail-block" id="buyer-confirmation">
             <fieldset>
               <legend>Agent authority</legend>
               <div class="mode-options">
                 <label class="mode-option"><input type="radio" name="mode" value="Ask" checked><span>Ask</span><small>Ask before changing the cart.</small></label>
                 <label class="mode-option"><input type="radio" name="mode" value="Auto"><span>Auto</span><small>May browse and change the cart.</small></label>
               </div>
-              <p>Both modes stop here for your visible final confirmation.</p>
+              <p class="mode-note">Both modes stop here for your visible final confirmation.</p>
             </fieldset>
             <fieldset>
               <legend>Buyer details sent on confirmation</legend>
@@ -226,14 +506,14 @@
             <button type="submit">Confirm buyer and authorize order</button>
             <output class="confirmation-status" id="confirmation-status" aria-live="polite">No finalization authorization minted.</output>
           </form>
-          <section class="order-panel" aria-labelledby="order-title">
+          <section class="order-panel rail-block" aria-labelledby="order-title">
             <h2 id="order-title">Order status</h2>
             <output class="order-status" id="buyer-order-status" aria-live="polite" aria-atomic="true">No order submitted in this session.</output>
             <button id="buyer-submit-order" type="button" hidden>Submit synthetic order</button>
           </section>
         </div>
       </div>
-      <div class="reset-strip"><span>Buyer tools: 3 role-scoped contracts · seller tools: unavailable · reset: seller controlled</span></div>
+      <div class="wrap"><div class="reset-strip"><span>Buyer tools: 3 role-scoped contracts · seller tools: unavailable · reset: seller controlled</span></div></div>
     </section>
   </main>
   <script type="module" src="/app.js"></script>
