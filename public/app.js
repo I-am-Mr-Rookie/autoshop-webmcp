@@ -542,8 +542,11 @@ async function setupSellerAuthentication() {
       title.textContent = `${order.quantity} item${order.quantity === 1 ? '' : 's'} · ${money(order.total_cents)}`;
       items.textContent = order.items.map(item => `${item.product_id} × ${item.quantity}`).join(', ');
       receipt.className = order.receipt ? 'receipt-line' : 'state-chip';
+      const authority = order.receipt?.decision_path && order.receipt?.mandate_version
+        ? ` · ${order.receipt.decision_path === 'human_exception' ? 'human-approved exception' : 'within mandate'} · mandate v${order.receipt.mandate_version}`
+        : '';
       receipt.textContent = order.receipt
-        ? `Receipt ${order.receipt.receipt_id} · ${order.receipt.decision_path === 'human_exception' ? 'human-approved exception' : 'within mandate'} · mandate v${order.receipt.mandate_version}`
+        ? `Receipt ${order.receipt.receipt_id}${authority}`
         : `${order.status}${order.pending_action ? ` · action ${order.pending_action.state}` : ''}`;
       copy.append(id, title, items, receipt);
       const actions = document.createElement('div');

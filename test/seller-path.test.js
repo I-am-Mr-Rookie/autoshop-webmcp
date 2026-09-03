@@ -26,6 +26,7 @@ test('seller portal exposes queue, decision, approval, commit, receipt, privileg
   }
   const source = await readFile(new URL('../public/app.js', import.meta.url), 'utf8');
   assert.match(source, /receipt\.decision_path[\s\S]+receipt\.mandate_version/);
+  assert.match(source, /receipt\?\.decision_path && order\.receipt\?\.mandate_version/);
 });
 
 test('authenticated seller order endpoint returns a bounded queue', async () => {
