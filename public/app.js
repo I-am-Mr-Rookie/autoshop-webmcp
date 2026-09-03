@@ -659,11 +659,12 @@ async function setupSellerAuthentication() {
   approvalForm.addEventListener('submit', async event => {
     event.preventDefault();
     if (!approvalForm.reportValidity()) return;
+    const approvalInput = Object.fromEntries(new FormData(approvalForm));
     approvalFields.disabled = true;
     approvalForm.setAttribute('aria-busy', 'true');
     approvalStatus.textContent = 'Approving this exceptional action…';
     try {
-      const result = await requestSellerApproval(fetch, Object.fromEntries(new FormData(approvalForm)));
+      const result = await requestSellerApproval(fetch, approvalInput);
       approvalStatus.textContent = `${result.message} Continue with commit_action.`;
       commitApproved.hidden = false;
       clearTimeout(sellerApprovalTimer);

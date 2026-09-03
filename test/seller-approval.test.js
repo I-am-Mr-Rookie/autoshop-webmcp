@@ -132,6 +132,7 @@ test('seller page requires a visible confirmation and commit_action uses the ser
   assert.match(html, /name="confirm"[^>]+value="APPROVE"[^>]+required/);
   assert.match(html, /Approve this exceptional action/);
   assert.match(appSource, /sellerApprovalTimer[\s\S]+setTimeout[\s\S]+Approval expired\. Review and approve again\./);
+  assert.match(appSource, /const approvalInput = Object\.fromEntries\(new FormData\(approvalForm\)\);[\s\S]+approvalFields\.disabled = true;[\s\S]+requestSellerApproval\(fetch, approvalInput\)/);
 
   let approvalRequest;
   const result = await requestSellerApproval(async (url, options) => {
