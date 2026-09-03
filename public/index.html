@@ -166,9 +166,9 @@
             <label class="field">Pending action ID<input name="action_id" type="text" maxlength="64" pattern="[A-Za-z0-9_-]+" required></label>
             <label class="approval-confirm"><input name="confirm" type="checkbox" value="APPROVE" required><span>I reviewed this action and approve this one exceptional commit.</span></label>
             <button type="submit">Approve this exceptional action</button>
-            <button id="seller-commit-approved" type="button" hidden>Commit approved action</button>
             <output class="confirmation-status" id="seller-approval-status" aria-live="polite" aria-atomic="true">No exceptional action approved.</output>
           </fieldset>
+          <button id="seller-commit-approved" type="button" hidden>Commit approved action</button>
         </form>
         <div class="reset-strip"><span>Seller-controlled reset restores deterministic seeded demo data.</span><button id="reset-demo" type="button">Reset demo data</button></div>
         <button id="seller-logout" type="button">Log out</button>
