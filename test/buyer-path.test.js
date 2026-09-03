@@ -78,6 +78,7 @@ test('buyer startup recovers the latest order and renders its receipt without br
   assert.equal(result.order.receipt.receipt_id, 'receipt_demo');
   assert.match(source, /await readBuyerOrder\(fetch\)/);
   assert.doesNotMatch(source, /localStorage|sessionStorage/);
+  assert.match(source, /if \(!modeInitialized\) {[\s\S]*form\.elements\.mode\.value = state\.mode;[\s\S]*modeInitialized = true;/);
 });
 
 test('demo reset sends only the explicit reset confirmation', async () => {

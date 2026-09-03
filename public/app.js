@@ -336,6 +336,7 @@ async function setupBuyerConfirmation() {
   const submit = document.querySelector('#buyer-submit-order');
   const orderStatus = document.querySelector('#buyer-order-status');
   let cartVersion;
+  let modeInitialized = false;
   let catalogue = [];
   let authorizationTimer;
 
@@ -354,7 +355,10 @@ async function setupBuyerConfirmation() {
   const render = state => {
     catalogue = state.products;
     cartVersion = state.cart.version;
-    form.elements.mode.value = state.mode;
+    if (!modeInitialized) {
+      form.elements.mode.value = state.mode;
+      modeInitialized = true;
+    }
     products.replaceChildren(...(catalogue.length ? catalogue.map(product => {
       const card = document.createElement('article');
       card.className = 'product-card';
