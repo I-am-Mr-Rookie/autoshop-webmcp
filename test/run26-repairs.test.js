@@ -46,13 +46,17 @@ test('reset requires a seller session, same origin, and exact RESET confirmation
   assert.equal(resets, 1);
 });
 
-test('root registers no tools and redirects ordinary entry to buyer', async () => {
+test('root registers no tools and serves the script-free public homepage', async () => {
   const registrations = [];
   await registerRoleTools({ registerTool: async tool => registrations.push(tool.name) }, '/', () => {});
   assert.deepEqual(registrations, []);
 
   const redirects = await readFile(new URL('../public/_redirects', import.meta.url), 'utf8');
-  assert.match(redirects, /^\/ \/buyer 302(?:!|\s)/m);
+  assert.match(redirects, /^\/ \/home\.html 200!/m);
+  const home = await readFile(new URL('../public/home.html', import.meta.url), 'utf8');
+  assert.doesNotMatch(home, /<script/i);
+  assert.match(home, /href="\/buyer"/);
+  assert.match(home, /href="\/seller"/);
 });
 
 test('a failed stock update rolls back without creating a receipt', async () => {

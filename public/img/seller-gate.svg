@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 260" role="img" aria-label="Mandate gauge and approval switch illustration">
+  <defs>
+    <pattern id="g" width="12" height="12" patternUnits="userSpaceOnUse"><path d="M12 0H0v12" fill="none" stroke="#e2e8ec" stroke-width="1"/></pattern>
+  </defs>
+  <rect width="360" height="260" rx="3" fill="#f7f9fa"/>
+  <rect width="360" height="260" fill="url(#g)"/>
+  <g fill="none" stroke="#1d2b34" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <!-- mandate gauge -->
+    <path d="M40 170a90 90 0 0 1 180 0" stroke="#aeb9c1" stroke-width="2"/>
+    <path d="M40 170a90 90 0 0 1 126-83" stroke="#047857" stroke-width="6"/>
+    <path d="M166 87a90 90 0 0 1 54 83" stroke="#ecc48f" stroke-width="6"/>
+    <g stroke="#66747d">
+      <path d="M50 170h10M63 128l9 5M94 97l5 9M130 84v10M166 97l-5 9M197 128l-9 5M210 170h-10"/>
+    </g>
+    <!-- needle -->
+    <path d="M130 170L96 108" stroke="#1d2b34" stroke-width="2.5"/>
+    <circle cx="130" cy="170" r="7" fill="#ffffff" stroke="#1d2b34" stroke-width="2"/>
+    <circle cx="130" cy="170" r="2" fill="#1d2b34"/>
+    <!-- limit ticks label boxes -->
+    <rect x="54" y="186" width="152" height="14" rx="2" fill="#ffffff" stroke="#aeb9c1"/>
+    <path d="M62 193h34M104 193h24M136 193h50" stroke="#aeb9c1"/>
+    <!-- approval switch -->
+    <rect x="252" y="76" width="68" height="128" rx="6" fill="#ffffff" stroke="#b45309"/>
+    <rect x="262" y="88" width="48" height="76" rx="24" fill="#fbf0e1" stroke="#ecc48f"/>
+    <circle cx="286" cy="140" r="18" fill="#b45309" stroke="none"/>
+    <path d="M280 140l4 4 8-9" stroke="#ffffff" stroke-width="2.5"/>
+    <path d="M270 178h32M270 188h20" stroke="#aeb9c1"/>
+    <!-- trace between -->
+    <path d="M220 170h20a6 6 0 0 0 6-6v-18" stroke="#ecc48f" stroke-width="2" stroke-dasharray="4 4"/>
+    <!-- receipt -->
+    <path d="M266 216h40v28l-5-3-5 3-5-3-5 3-5-3-5 3-5-3-5 3z" fill="#e6f4ee" stroke="#047857"/>
+    <path d="M274 226h24M274 233h16" stroke="#047857"/>
+    <path d="M286 204v12" stroke="#9ed3bd" stroke-width="2" stroke-dasharray="3 3"/>
+  </g>
+</svg>

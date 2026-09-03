@@ -8,12 +8,7 @@ const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=
 
 createServer(async (req, res) => {
   const path = new URL(req.url, 'http://localhost').pathname;
-  if (path === '/') {
-    res.writeHead(302, { Location: '/buyer' });
-    res.end();
-    return;
-  }
-  const file = ['/buyer', '/seller'].includes(path) ? 'index.html' : path.replace(/^\/+/, '');
+  const file = path === '/' ? 'home.html' : ['/buyer', '/seller'].includes(path) ? 'index.html' : path.replace(/^\/+/, '');
   try {
     const body = await readFile(join(root, file));
     res.writeHead(200, { 'Content-Type': types[extname(file)] ?? 'application/octet-stream' });

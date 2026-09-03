@@ -339,7 +339,8 @@ async function setupBuyerConfirmation() {
       const card = document.createElement('article');
       card.className = 'product-card';
       card.dataset.stock = product.stock === 0 ? 'empty' : 'available';
-      card.innerHTML = `<p class="product-stock"></p><h3></h3><p class="product-price"></p><button type="button">Add to cart</button>`;
+      card.dataset.productId = product.id;
+      card.innerHTML = `<figure class="product-art" aria-hidden="true"></figure><p class="product-stock"></p><h3></h3><p class="product-price"></p><button type="button">Add to cart</button>`;
       card.querySelector('.product-stock').textContent = `${product.stock} in stock`;
       card.querySelector('h3').textContent = product.name;
       card.querySelector('.product-price').textContent = money(product.price_cents);

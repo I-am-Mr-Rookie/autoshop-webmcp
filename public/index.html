@@ -203,8 +203,13 @@
     .compact-form .field { margin-top: 0; }
     .compact-form button { width: auto; min-width: 110px; }
     .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 12px; }
-    .product-card { position: relative; display: grid; grid-template-rows: auto 1fr auto auto; min-width: 0; padding: 16px 16px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); transition: border-color var(--fast) var(--ease), transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease); }
+    .product-card { position: relative; display: grid; grid-template-rows: auto auto 1fr auto auto; min-width: 0; padding: 16px 16px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); transition: border-color var(--fast) var(--ease), transform var(--fast) var(--ease), box-shadow var(--fast) var(--ease); }
     .product-card:hover { border-color: var(--line-strong); box-shadow: 0 6px 18px -12px #1d2b3466; transform: translateY(-1px); }
+    .product-art { display: block; aspect-ratio: 200 / 140; margin: 0 0 12px; border: 1px solid var(--line); border-radius: 2px; background: var(--surface-2) url("/img/part-generic.svg") center / cover no-repeat; }
+    .product-card[data-product-id^="cpu"] .product-art { background-image: url("/img/part-cpu.svg"); }
+    .product-card[data-product-id^="ram"] .product-art { background-image: url("/img/part-ram.svg"); }
+    .product-card[data-product-id^="ssd"] .product-art { background-image: url("/img/part-ssd.svg"); }
+    .product-card[data-stock="empty"] .product-art { filter: grayscale(1); opacity: .7; }
     .product-card h3 { margin: 12px 0 10px; font: 700 1rem/1.35 var(--sans); letter-spacing: 0; }
     .product-stock, .product-price { margin: 0; font-family: var(--mono); }
     .product-stock { justify-self: start; display: inline-flex; align-items: center; gap: 7px; padding: 4px 8px; border: 1px solid var(--agent-line); border-radius: 2px; background: var(--agent-tint); color: var(--agent-ink); font-size: .68rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
@@ -223,7 +228,8 @@
     .cart-controls button { width: 44px; min-width: 44px; min-height: 44px; padding: 0; font-size: 1.05rem; font-weight: 600; }
     .cart-controls b { min-width: 28px; text-align: center; font: 600 .95rem/1 var(--mono); font-variant-numeric: tabular-nums; }
     .cart-controls .remove { width: auto; min-width: 0; padding: 0 10px; font-size: .8rem; font-weight: 600; color: var(--muted); }
-    .cart li:not(:has(.cart-controls)) { display: block; padding: 22px 16px; border: 1px dashed var(--line-strong); border-radius: var(--radius); margin-top: 12px; text-align: center; color: var(--muted); font-size: .88rem; }
+    .cart li:not(:has(.cart-controls))::before { content: ""; display: block; width: 64px; height: 48px; margin: 0 auto 6px; background: url("/img/empty-cart.svg") center / contain no-repeat; }
+    .cart li:not(:has(.cart-controls)) { display: block; padding: 18px 16px 20px; border: 1px dashed var(--line-strong); border-radius: var(--radius); margin-top: 12px; text-align: center; color: var(--muted); font-size: .88rem; }
     .cart:has(li:not(:has(.cart-controls))) { border-top: 0; margin-top: 8px; }
     .total { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 14px; padding-top: 4px; }
     .total span { color: var(--muted); font: 600 .72rem/1.3 var(--mono); letter-spacing: .08em; text-transform: uppercase; }
@@ -232,6 +238,14 @@
 
     /* ------------------------------------------------------ Seller layout */
     .seller-login { grid-column: 1 / span 6; margin-bottom: clamp(36px, 6vw, 64px); }
+    .login-aside { grid-column: 8 / -1; display: grid; gap: 18px; align-self: start; align-content: start; }
+    .login-aside img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+    .login-aside dl { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; margin: 0; padding: 18px 20px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); font-size: .88rem; line-height: 1.5; }
+    .login-aside dt { color: var(--agent-ink); font: 500 .8rem/1.6 var(--mono); }
+    .login-aside dt.mut { color: var(--human-ink); }
+    .login-aside dd { margin: 0; color: var(--muted); }
+    .login-aside .hint { grid-column: 1 / -1; margin-top: 4px; padding-top: 10px; border-top: 1px dashed var(--line-strong); font-size: .78rem; }
+    .seller-grid:has(#seller-login[hidden]) .login-aside { display: none; }
     .seller-login .panel-body { padding-top: 6px; }
     .seller-login input { padding-right: 48px; }
     .seller-login button[type="submit"] { margin-top: 24px; }
@@ -289,7 +303,8 @@
 
     /* ------------------------------------------------- Empty / loading rows */
     #buyer-products > p:only-child, #seller-orders > p:only-child { grid-column: 1 / -1; margin: 0; padding: 32px 20px; border: 1px dashed var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--muted); font-size: .9rem; line-height: 1.5; text-align: center; }
-    #buyer-products > p:only-child::before, #seller-orders > p:only-child::before { content: ""; display: block; width: 28px; height: 2px; margin: 0 auto 14px; background: var(--line-strong); }
+    #buyer-products > p:only-child::before, #seller-orders > p:only-child::before { content: ""; display: block; width: 64px; height: 48px; margin: 0 auto 10px; background: url("/img/empty-parts.svg") center / contain no-repeat; }
+    #seller-orders > p:only-child::before { background-image: url("/img/empty-queue.svg"); }
 
     /* ------------------------------------------------------------- Footers */
     .reset-strip, .contract-footer { margin: 0 0 clamp(36px, 6vw, 64px); padding: 14px 0 0; border-top: 1px solid var(--line); color: var(--muted); font: 500 .74rem/1.6 var(--mono); letter-spacing: .02em; }
@@ -321,7 +336,8 @@
     }
     @media (max-width: 900px) {
       .portal-header .grid { align-items: start; }
-      .portal-intro, .machine, .catalogue, .buyer-checkout, .seller-orders-section, .seller-rail, .seller-login { grid-column: 1 / -1; }
+      .portal-intro, .machine, .catalogue, .buyer-checkout, .seller-orders-section, .seller-rail, .seller-login, .login-aside { grid-column: 1 / -1; }
+      .login-aside { margin-bottom: clamp(36px, 6vw, 64px); }
       .buyer-checkout { position: static; }
       .circuit { grid-template-columns: 1fr; gap: 18px; }
       .circuit-key { grid-auto-flow: column; justify-content: start; gap: 18px; min-width: 0; }
@@ -354,7 +370,7 @@
   <main>
     <nav class="topbar" aria-label="Portal navigation">
       <div class="wrap">
-        <a class="brand" href="/buyer"><strong>AutoShop</strong><span>Synthetic parts · bounded authority</span></a>
+        <a class="brand" href="/"><strong>AutoShop</strong><span>Synthetic parts · bounded authority</span></a>
         <div class="portal-nav"><a href="/buyer">Buyer</a><a href="/seller">Seller</a></div>
       </div>
     </nav>
@@ -396,6 +412,16 @@
             <output class="confirmation-status" id="seller-login-status" aria-live="polite"></output>
           </div>
         </form>
+        <aside class="login-aside" aria-label="What seller sign-in unlocks">
+          <img src="/img/seller-gate.svg" width="360" height="260" alt="Illustration of a mandate gauge beside an amber approval switch that issues a receipt.">
+          <dl>
+            <dt>get_mandate</dt><dd>Read the live numerical limits.</dd>
+            <dt>list_orders</dt><dd>Review the order queue. Buyer text is untrusted.</dd>
+            <dt class="mut">accept_order</dt><dd>Accept inside the mandate, or receive an approval request.</dd>
+            <dt class="mut">commit_action</dt><dd>Commit one human-approved exception, once.</dd>
+            <p class="hint">All four tools appear only after sign-in and disappear on logout, expiry, or leaving this page.</p>
+          </dl>
+        </aside>
         <div class="seller-console" id="seller-console" hidden>
           <div class="grid seller-grid">
             <section class="seller-orders-section panel" aria-labelledby="seller-orders-title">

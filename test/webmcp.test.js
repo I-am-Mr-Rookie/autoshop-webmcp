@@ -79,10 +79,12 @@ test('buyer and seller routes serve the portal page', async () => {
   });
 
   try {
+    let home;
     let buyer;
     let seller;
     for (let attempt = 0; attempt < 20; attempt += 1) {
       try {
+        home = await fetch(`http://127.0.0.1:${port}/`);
         buyer = await fetch(`http://127.0.0.1:${port}/buyer`);
         seller = await fetch(`http://127.0.0.1:${port}/seller`);
         break;
@@ -90,7 +92,9 @@ test('buyer and seller routes serve the portal page', async () => {
         await new Promise(resolve => setTimeout(resolve, 50));
       }
     }
-    assert.ok(buyer && seller, 'server did not become reachable');
+    assert.ok(home && buyer && seller, 'server did not become reachable');
+    assert.equal(home.status, 200);
+    assert.match(await home.text(), /<title>AutoShop/);
     assert.equal(buyer.status, 200);
     assert.equal(seller.status, 200);
   } finally {

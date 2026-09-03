@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="AutoShop is a synthetic computer-parts marketplace demonstrating bounded human-agent authority with WebMCP tools. The agent shops; you keep the last word.">
+  <title>AutoShop — the agent shops, you keep the last word</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%231d2b34'/%3E%3Cpath d='M16 46 28 18h8l12 28h-8l-2-6H26l-2 6zm13-13h6l-3-9z' fill='%236ee7b7'/%3E%3C/svg%3E">
+  <style>
+    /* AutoShop homepage · technical paper · no scripts, no external requests */
+    :root {
+      color-scheme: light;
+      --canvas: #f1f4f6; --canvas-line: #e2e8ec; --surface: #ffffff; --surface-2: #f7f9fa;
+      --inset: #1d2b34; --ink: #1d2b34; --ink-2: #33444f; --muted: #66747d;
+      --line: #d7dee3; --line-strong: #aeb9c1;
+      --agent: #047857; --agent-ink: #065f46; --agent-tint: #e6f4ee; --agent-line: #9ed3bd;
+      --human: #b45309; --human-ink: #92400e; --human-tint: #fbf0e1; --human-line: #ecc48f;
+      --focus: #1e40af;
+      --serif: "DM Serif Display", Fraunces, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      --sans: Manrope, Aptos, "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+      --mono: "DM Mono", "IBM Plex Mono", Consolas, "SF Mono", Menlo, monospace;
+      --radius: 3px; --gutter: clamp(18px, 3.2vw, 40px);
+      --ease: cubic-bezier(.22, 1, .36, 1); --fast: 160ms;
+      font-family: var(--sans); font-size: 16px; line-height: 1.5; color: var(--ink); background: var(--canvas);
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background-color: var(--canvas); background-image: linear-gradient(var(--canvas-line) 1px, transparent 1px), linear-gradient(90deg, var(--canvas-line) 1px, transparent 1px); background-size: 32px 32px; background-position: center top; overflow-x: clip; }
+    .wrap { width: min(1280px, 100% - 2 * var(--gutter)); margin-inline: auto; }
+    .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: clamp(16px, 2vw, 28px); }
+    h1, h2, h3 { margin: 0; font-family: var(--serif); font-weight: 400; letter-spacing: -.015em; text-wrap: balance; }
+    h1 { font-size: clamp(2.6rem, 1.2rem + 4.2vw, 4.9rem); line-height: 1; }
+    h2 { font-size: clamp(1.7rem, 1.2rem + 1.4vw, 2.5rem); line-height: 1.12; }
+    h3 { font-size: 1.2rem; line-height: 1.3; }
+    p { margin: 0; }
+    a { color: var(--focus); text-decoration-thickness: 1px; text-underline-offset: 3px; transition: color var(--fast) ease-out; }
+    a:hover { color: var(--ink); }
+    .eyebrow { display: flex; align-items: center; gap: 10px; color: var(--muted); font: 600 .72rem/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+    .eyebrow::before { content: ""; width: 22px; height: 1px; background: var(--line-strong); }
+    .lede { max-width: 56ch; margin-top: 20px; color: var(--ink-2); font-size: clamp(1.05rem, 1rem + .35vw, 1.2rem); line-height: 1.6; }
+    .hint { color: var(--muted); font-size: .9rem; line-height: 1.55; }
+    .mono { font-family: var(--mono); }
+
+    /* top bar */
+    .topbar { position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: saturate(1.1) blur(6px); }
+    .topbar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 60px; }
+    .brand { display: inline-flex; align-items: baseline; gap: 12px; color: var(--ink); text-decoration: none; }
+    .brand strong { font: 400 1.35rem/1 var(--serif); }
+    .brand span { color: var(--muted); font: 500 .7rem/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+    .portal-nav { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); }
+    .portal-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 2px; color: var(--ink-2); font-size: .875rem; font-weight: 600; text-decoration: none; transition: background var(--fast) ease-out, color var(--fast) ease-out; }
+    .portal-nav a:hover { background: var(--surface); color: var(--ink); }
+    .portal-nav a.github { color: var(--muted); }
+
+    /* buttons */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 10px 22px; border: 1px solid var(--agent); border-radius: var(--radius); background: var(--agent); color: #fff; font: 700 .95rem/1.2 var(--sans); text-decoration: none; transition: background var(--fast) ease-out, border-color var(--fast) ease-out, color var(--fast) ease-out, transform var(--fast) ease-out; }
+    .btn:hover { background: var(--agent-ink); border-color: var(--agent-ink); color: #fff; }
+    .btn:active { transform: translateY(1px); }
+    .btn-secondary { border-color: var(--line-strong); background: var(--surface); color: var(--ink); }
+    .btn-secondary:hover { border-color: var(--ink); background: var(--ink); color: #fff; }
+    .btn-human { border-color: var(--human); background: var(--human); }
+    .btn-human:hover { border-color: var(--human-ink); background: var(--human-ink); }
+    .btn svg { width: 16px; height: 16px; }
+
+    /* hero */
+    .hero { padding: clamp(48px, 7vw, 96px) 0 clamp(40px, 5vw, 64px); }
+    .hero .grid { row-gap: 32px; align-items: center; }
+    .hero-copy { grid-column: 1 / span 7; }
+    .hero-copy h1 { margin-top: 22px; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+    .hero-actions .text-link { align-self: center; margin-left: 6px; font-weight: 600; font-size: .95rem; }
+    .facts { display: flex; flex-wrap: wrap; gap: 8px; margin: 26px 0 0; padding: 0; list-style: none; }
+    .facts li { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 2px; background: var(--surface); color: var(--ink-2); font: 600 .72rem/1.3 var(--mono); letter-spacing: .02em; }
+    .facts li::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--agent); }
+    .facts li.human::before { background: var(--human); }
+    .hero-art { grid-column: 8 / -1; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: 10px; }
+    .hero-art img { display: block; width: 100%; height: auto; border-radius: 2px; }
+    .hero-art figcaption { display: flex; justify-content: space-between; gap: 12px; padding: 10px 6px 2px; color: var(--muted); font: 500 .72rem/1.4 var(--mono); }
+    .hero-art figcaption b { color: var(--human-ink); font-weight: 600; }
+
+    /* sections */
+    section.band { padding: clamp(40px, 5vw, 72px) 0; }
+    .section-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 40px; align-items: end; margin-bottom: 32px; }
+    .section-head h2 { margin-top: 14px; }
+    .section-head .hint { max-width: 52ch; font-size: 1rem; }
+
+    /* authority circuits */
+    .circuits { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .circuit { display: grid; gap: 18px; padding: 22px 24px 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+    .circuit-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .circuit-head h3 { font: 400 1.35rem/1.2 var(--serif); }
+    .circuit-head a { font-size: .875rem; font-weight: 600; }
+    .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 0; list-style: none; }
+    .steps li { position: relative; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 4px 12px; padding-right: 20px; }
+    .steps span { grid-row: 1 / 4; display: grid; place-items: center; width: 30px; height: 30px; border: 2px solid var(--agent); border-radius: 50%; background: var(--surface); color: var(--agent-ink); font: 600 .68rem/1 var(--mono); }
+    .steps li::before { content: ""; position: absolute; top: 15px; left: 30px; right: 0; height: 2px; background: repeating-linear-gradient(90deg, var(--agent-line) 0 6px, transparent 6px 10px); }
+    .steps li:last-child::before { display: none; }
+    .steps li:nth-last-child(2)::before { background: linear-gradient(90deg, var(--agent-line), var(--human-line)); }
+    .steps li:last-child span { border-color: var(--human); background: var(--human); color: #fff; }
+    .steps strong { position: relative; z-index: 1; width: fit-content; padding-right: 8px; background: var(--surface); font-size: .95rem; font-weight: 700; line-height: 1.25; }
+    .steps small { color: var(--muted); font-size: .8rem; line-height: 1.4; }
+    .steps b { justify-self: start; margin-top: 2px; padding: 3px 7px; border: 1px solid var(--agent-line); border-radius: 2px; color: var(--agent-ink); background: var(--agent-tint); font: 600 .62rem/1 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+    .steps li:last-child b { border-color: var(--human-line); color: var(--human-ink); background: var(--human-tint); }
+
+    /* features */
+    .features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .feature { display: grid; grid-template-rows: auto auto 1fr; gap: 12px; padding: 22px 22px 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); transition: border-color var(--fast) ease-out, transform var(--fast) ease-out; }
+    .feature:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+    .feature svg { width: 40px; height: 40px; }
+    .feature h3 { font: 700 1.05rem/1.3 var(--sans); letter-spacing: 0; }
+    .feature p { color: var(--muted); font-size: .92rem; line-height: 1.55; }
+    .feature.human { border-top: 3px solid var(--human); }
+    .feature.agent { border-top: 3px solid var(--agent); }
+
+    /* tool contracts (dark inset) */
+    .contracts { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--inset); border-radius: var(--radius); background: var(--inset); color: #dbe6ec; overflow: hidden; }
+    .contracts > div { padding: 22px 24px 26px; }
+    .contracts > div + div { border-left: 1px solid #ffffff1f; }
+    .contracts h3 { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; color: #9fb3bd; font: 600 .7rem/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+    .contracts h3 b { color: #bcd9cc; font-weight: 600; }
+    .contracts h3 b::before { content: "● "; color: #34d399; }
+    .contracts h3 b.human::before { color: #f6c27a; }
+    .contracts dl { display: grid; grid-template-columns: auto 1fr; gap: 10px 18px; margin: 0; font-size: .86rem; line-height: 1.5; }
+    .contracts dt { color: #6ee7b7; font: 500 .82rem/1.6 var(--mono); }
+    .contracts dt.mut { color: #f6c27a; }
+    .contracts dd { margin: 0; color: #c6d3da; }
+    .contracts .note { grid-column: 1 / -1; margin-top: 10px; padding-top: 12px; border-top: 1px dashed #ffffff2b; color: #9fb3bd; font: 500 .74rem/1.5 var(--mono); }
+
+    /* seeded catalogue */
+    .parts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .part { display: grid; gap: 10px; padding: 14px 14px 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+    .part img { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 2px; }
+    .part .stock { justify-self: start; display: inline-flex; align-items: center; gap: 7px; padding: 4px 8px; border: 1px solid var(--agent-line); border-radius: 2px; background: var(--agent-tint); color: var(--agent-ink); font: 600 .68rem/1 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+    .part .stock::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--agent); }
+    .part h3 { font: 700 1rem/1.35 var(--sans); letter-spacing: 0; }
+    .part .price { padding-top: 10px; border-top: 1px dashed var(--line); font: 600 1.1rem/1 var(--mono); font-variant-numeric: tabular-nums; }
+    .part code { color: var(--muted); font-size: .72rem; }
+
+    /* portal picker */
+    .pick { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .pick a { display: grid; grid-template-rows: auto auto 1fr auto; gap: 12px; padding: 26px 26px 28px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink); text-decoration: none; transition: border-color var(--fast) ease-out, transform var(--fast) ease-out, box-shadow var(--fast) ease-out; }
+    .pick a:hover { border-color: var(--ink); transform: translateY(-2px); box-shadow: 0 12px 28px -18px #1d2b3466; }
+    .pick .eyebrow { color: var(--agent-ink); }
+    .pick a.seller .eyebrow { color: var(--human-ink); }
+    .pick h3 { font-size: 1.7rem; }
+    .pick p { color: var(--muted); line-height: 1.55; }
+    .pick .go { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: var(--agent); }
+    .pick a.seller .go { color: var(--human); }
+    .pick .go::after { content: "→"; transition: transform var(--fast) ease-out; }
+    .pick a:hover .go::after { transform: translateX(4px); }
+
+    footer { margin-top: clamp(24px, 4vw, 48px); padding: 24px 0 56px; border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; line-height: 1.6; }
+    footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 32px; }
+    footer .mono { font-size: .74rem; }
+
+    /* motion: one coordinated fade-up, staggered */
+    .rise { animation: rise .6s var(--ease) both; }
+    .rise:nth-child(2) { animation-delay: 70ms; } .rise:nth-child(3) { animation-delay: 140ms; } .rise:nth-child(4) { animation-delay: 210ms; }
+    .hero-art.rise { animation-delay: 160ms; }
+    @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0ms !important; transition-duration: .01ms !important; } .topbar { backdrop-filter: none; } }
+    :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+
+    @media (max-width: 1100px) { .hero-copy { grid-column: 1 / span 7; } .hero-art { grid-column: 8 / -1; } .features { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 900px) {
+      .hero .grid { align-items: start; }
+      .hero-copy, .hero-art { grid-column: 1 / -1; }
+      .section-head, .circuits, .contracts, .pick { grid-template-columns: 1fr; }
+      .contracts > div + div { border-left: 0; border-top: 1px solid #ffffff1f; }
+      .parts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 640px) {
+      .brand span { display: none; }
+      .portal-nav a { padding: 0 12px; }
+      .features, .parts { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: 1fr; gap: 18px; }
+      .steps li { padding-right: 0; }
+      .steps li::before { top: 30px; bottom: -18px; left: 14px; right: auto; width: 2px; height: auto; background: repeating-linear-gradient(180deg, var(--agent-line) 0 6px, transparent 6px 10px); }
+      .steps li:nth-last-child(2)::before { background: linear-gradient(180deg, var(--agent-line), var(--human-line)); }
+      .hero-actions .btn { width: 100%; }
+      .hero-actions .text-link { margin-left: 0; }
+      .contracts dl { grid-template-columns: 1fr; gap: 4px; }
+      .contracts dd { margin-bottom: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="topbar" aria-label="Site navigation">
+    <div class="wrap">
+      <a class="brand" href="/" aria-current="page"><strong>AutoShop</strong><span>Synthetic parts · bounded authority</span></a>
+      <div class="portal-nav">
+        <a href="/buyer">Buyer</a>
+        <a href="/seller">Seller</a>
+        <a class="github" href="https://github.com/I-am-Mr-Rookie/autoshop-webmcp" target="_blank" rel="noopener noreferrer">GitHub</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <div class="wrap grid">
+        <div class="hero-copy">
+          <p class="eyebrow rise">AutoShop · WebMCP demonstration · synthetic marketplace</p>
+          <h1 class="rise">The agent shops.<br>You keep the last word.</h1>
+          <p class="lede rise">AutoShop is a synthetic computer-parts marketplace built to show <em>bounded</em> human–agent authority. An AI agent can browse the catalogue, fill a cart, and triage orders through seven WebMCP tools — but every consequential step stops at a visible human decision, on both sides of the counter.</p>
+          <div class="hero-actions rise">
+            <a class="btn" href="/buyer">Enter the buyer portal</a>
+            <a class="btn btn-secondary" href="/seller">Open the seller portal</a>
+            <a class="text-link" href="https://github.com/I-am-Mr-Rookie/autoshop-webmcp" target="_blank" rel="noopener noreferrer">Read the source on GitHub</a>
+          </div>
+          <ul class="facts" aria-label="Key facts">
+            <li>3 buyer tools · 4 seller tools</li>
+            <li>Ask is the default scope</li>
+            <li class="human">Human confirmation before every order</li>
+            <li class="human">Human approval before every exception</li>
+            <li>Synthetic only · no payments</li>
+          </ul>
+        </div>
+        <figure class="hero-art rise">
+          <img src="/img/hero-circuit.svg" width="560" height="440" alt="Schematic: seeded parts flow through a green agent node, then across an amber dashed boundary to a human approval switch that issues a receipt.">
+          <figcaption><span>fig. 1 — the authority circuit</span><b>amber line = human decides</b></figcaption>
+        </figure>
+      </div>
+    </header>
+
+    <section class="band" aria-labelledby="how-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div><p class="eyebrow">How it works</p><h2 id="how-title">Two portals, one boundary each</h2></div>
+          <p class="hint">Agents get real capability inside a scope. Humans keep the one action that changes stock, money, or trust. The boundary is drawn in the interface, not buried in policy text.</p>
+        </div>
+        <div class="circuits">
+          <article class="circuit" aria-labelledby="buyer-circuit">
+            <div class="circuit-head"><h3 id="buyer-circuit">Buyer side</h3><a href="/buyer">Open buyer portal</a></div>
+            <ol class="steps">
+              <li><span>01</span><strong>Browse</strong><small>The agent inspects seeded stock and prices.</small><b>Agent scope</b></li>
+              <li><span>02</span><strong>Choose scope</strong><small>Ask or Auto decides whether it may change the cart.</small><b>Agent scope</b></li>
+              <li><span>03</span><strong>Confirm</strong><small>You review the exact cart and authorize the order once.</small><b>Human decision</b></li>
+            </ol>
+          </article>
+          <article class="circuit" aria-labelledby="seller-circuit">
+            <div class="circuit-head"><h3 id="seller-circuit">Seller side</h3><a href="/seller">Open seller portal</a></div>
+            <ol class="steps">
+              <li><span>01</span><strong>Authenticate</strong><small>Seller tools stay hidden until sign-in.</small><b>Gate</b></li>
+              <li><span>02</span><strong>Enforce mandate</strong><small>Orders inside the numerical mandate can be accepted by the agent.</small><b>Agent scope</b></li>
+              <li><span>03</span><strong>Approve exception</strong><small>Anything outside it waits for one explicit, visible approval.</small><b>Human decision</b></li>
+            </ol>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="band" aria-labelledby="features-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div><p class="eyebrow">What makes it trustworthy</p><h2 id="features-title">Small surface. Sharp edges.</h2></div>
+          <p class="hint">Every feature exists to make the authority boundary legible within seconds — to a judge, a buyer, a seller, or the agent itself.</p>
+        </div>
+        <div class="features">
+          <article class="feature agent">
+            <svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="#047857" stroke-width="1.5"><rect x="6" y="8" width="28" height="24" rx="2"/><path d="M6 16h28M12 12h4M18 12h4"/><path d="M13 24h6M22 24h6" stroke="#9ed3bd"/></svg>
+            <h3>Role-scoped WebMCP tools</h3>
+            <p>Three buyer tools and four seller tools, each with a strict input schema. Seller tools are registered only after sign-in and removed on logout, expiry, or leaving the page.</p>
+          </article>
+          <article class="feature agent">
+            <svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="#047857" stroke-width="1.5"><circle cx="13" cy="20" r="6"/><circle cx="27" cy="20" r="6" stroke="#9ed3bd"/><path d="M13 20h14" stroke="#9ed3bd" stroke-dasharray="2 2"/><circle cx="13" cy="20" r="2.5" fill="#047857" stroke="none"/></svg>
+            <h3>Ask or Auto scope</h3>
+            <p>Ask is the default: the agent must ask before touching the cart. Auto lets it browse and change the cart freely. Neither mode can submit an order on its own.</p>
+          </article>
+          <article class="feature human">
+            <svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="#b45309" stroke-width="1.5"><rect x="8" y="10" width="24" height="20" rx="2"/><path d="M14 20l4 4 8-9" stroke-width="2"/><path d="M12 34h16" stroke="#ecc48f"/></svg>
+            <h3>Visible buyer confirmation</h3>
+            <p>Confirmation mints a one-time token bound to the exact cart version. Change the cart and the authorization is cancelled — the final submit always stops for you.</p>
+          </article>
+          <article class="feature agent">
+            <svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="#047857" stroke-width="1.5"><path d="M8 28a12 12 0 0 1 24 0"/><path d="M20 28L14 18" stroke-width="2"/><circle cx="20" cy="28" r="2" fill="#047857" stroke="none"/><path d="M10 22l2 1M30 22l-2 1M20 15v2" stroke="#9ed3bd"/></svg>
+            <h3>Numerical seller mandate</h3>
+            <p>Items per order, total, discount, and minimum remaining stock are versioned limits. Orders that fit are eligible for agent acceptance; the rest are not.</p>
+          </article>
+          <article class="feature human">
+            <svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="#b45309" stroke-width="1.5"><rect x="13" y="6" width="14" height="28" rx="7"/><circle cx="20" cy="26" r="5" fill="#b45309" stroke="none"/><path d="M6 20h5M29 20h5" stroke="#ecc48f" stroke-dasharray="2 2"/></svg>
+            <h3>Exceptional approval, once</h3>
+            <p>An out-of-mandate action becomes a pending item. A human reviews the exact action ID, ticks the confirmation, and commits it exactly once with an idempotency key.</p>
+          </article>
+          <article class="feature agent">
+            <svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="#047857" stroke-width="1.5"><path d="M10 6h20v26l-3-2-3 2-3-2-3 2-3-2-3 2-3-2z"/><path d="M15 14h10M15 19h7M15 24h10" stroke="#9ed3bd"/></svg>
+            <h3>Immutable receipts, honest data</h3>
+            <p>Every commit changes synthetic stock and issues a receipt that cannot be edited. Buyer-authored text is rendered as text, never as markup, and never authorizes anything.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="band" aria-labelledby="tools-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div><p class="eyebrow">Tool contracts</p><h2 id="tools-title">Seven tools. Nothing hidden.</h2></div>
+          <p class="hint">What an agent connected through WebMCP can see on each page. Read-only tools never change state; mutating tools are marked and bounded.</p>
+        </div>
+        <div class="contracts">
+          <div>
+            <h3><b>/buyer</b><span>3 tools · always registered</span></h3>
+            <dl>
+              <dt>browse_products</dt><dd>Find up to 8 parts by an optional 80-character query. Read-only.</dd>
+              <dt class="mut">manage_cart</dt><dd>Add, set, or remove one bounded quantity. Changes cart state only.</dd>
+              <dt class="mut">submit_order</dt><dd>Submit one order — only with a page-minted buyer confirmation token.</dd>
+              <div class="note">Seller tools are unavailable on this page.</div>
+            </dl>
+          </div>
+          <div>
+            <h3><b class="human">/seller</b><span>4 tools · after sign-in only</span></h3>
+            <dl>
+              <dt>get_mandate</dt><dd>Read the current numerical mandate. Read-only.</dd>
+              <dt>list_orders</dt><dd>Read up to 5 order summaries. Buyer content is flagged untrusted.</dd>
+              <dt class="mut">accept_order</dt><dd>Accept a bounded quantity with an idempotency key — or get APPROVAL_REQUIRED.</dd>
+              <dt class="mut">commit_action</dt><dd>Commit one human-approved action with a page-minted token.</dd>
+              <div class="note">Removed on logout, session expiry, or leaving the page.</div>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="band" aria-labelledby="catalogue-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div><p class="eyebrow">Seeded catalogue</p><h2 id="catalogue-title">Three parts, deterministic stock</h2></div>
+          <p class="hint">The demo ships with a small seeded inventory so every run starts from the same numbers. The seller portal can reset it at any time.</p>
+        </div>
+        <div class="parts">
+          <article class="part">
+            <img src="/img/part-cpu.svg" width="200" height="140" alt="Technical drawing of a processor package">
+            <span class="stock">10 in stock</span>
+            <h3>Ryzen 5 7600</h3>
+            <p class="price">$189.00 <code>cpu-1</code></p>
+          </article>
+          <article class="part">
+            <img src="/img/part-ram.svg" width="200" height="140" alt="Technical drawing of a memory module">
+            <span class="stock">12 in stock</span>
+            <h3>16GB DDR5 Kit</h3>
+            <p class="price">$49.00 <code>ram-1</code></p>
+          </article>
+          <article class="part">
+            <img src="/img/part-ssd.svg" width="200" height="140" alt="Technical drawing of an M.2 solid-state drive">
+            <span class="stock">8 in stock</span>
+            <h3>1TB NVMe SSD</h3>
+            <p class="price">$69.00 <code>ssd-1</code></p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="band" aria-labelledby="pick-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div><p class="eyebrow">Try it</p><h2 id="pick-title">Pick a side of the counter</h2></div>
+          <p class="hint">Open a portal in a WebMCP-capable browser to let an agent work with you, or drive everything by hand — the boundaries hold either way.</p>
+        </div>
+        <div class="pick">
+          <a href="/buyer" class="buyer">
+            <p class="eyebrow">Buyer portal</p>
+            <h3>Build a cart, choose the agent's scope, confirm once.</h3>
+            <p>No account needed. Your session, cart, and confirmation token live only in this browser.</p>
+            <span class="go">Enter as buyer</span>
+          </a>
+          <a href="/seller" class="seller">
+            <p class="eyebrow">Seller portal</p>
+            <h3>Sign in, tune the mandate, approve the exceptions.</h3>
+            <p>Uses the privately supplied demo credential. Nothing is stored in the page or the repository.</p>
+            <span class="go">Sign in as seller</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <p>AutoShop is a hackathon demonstration of bounded human–agent authority. Orders, stock, mandates, and receipts are synthetic; no payment is ever processed.</p>
+      <p class="mono"><a href="https://github.com/I-am-Mr-Rookie/autoshop-webmcp" target="_blank" rel="noopener noreferrer">github.com/I-am-Mr-Rookie/autoshop-webmcp</a> · plain HTML, CSS, and JavaScript · no build step</p>
+    </div>
+  </footer>
+</body>
+</html>

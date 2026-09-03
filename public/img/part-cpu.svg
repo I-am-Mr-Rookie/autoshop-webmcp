@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 140" role="img" aria-label="Processor illustration">
+  <defs>
+    <pattern id="g" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M10 0H0v10" fill="none" stroke="#e2e8ec" stroke-width="1"/></pattern>
+  </defs>
+  <rect width="200" height="140" fill="#f7f9fa"/>
+  <rect width="200" height="140" fill="url(#g)"/>
+  <g stroke="#1d2b34" stroke-width="1.5" stroke-linecap="round" fill="none">
+    <!-- pins -->
+    <g stroke="#aeb9c1">
+      <path d="M62 30v-9M74 30v-9M86 30v-9M98 30v-9M110 30v-9M122 30v-9M134 30v-9"/>
+      <path d="M62 110v9M74 110v9M86 110v9M98 110v9M110 110v9M122 110v9M134 110v9"/>
+      <path d="M58 44h-9M58 56h-9M58 68h-9M58 80h-9M58 92h-9"/>
+      <path d="M142 44h9M142 56h9M142 68h9M142 80h9M142 92h9"/>
+    </g>
+    <!-- package -->
+    <rect x="58" y="30" width="84" height="80" rx="4" fill="#ffffff"/>
+    <rect x="70" y="42" width="60" height="56" rx="2" fill="#e6f4ee" stroke="#047857"/>
+    <!-- die -->
+    <rect x="84" y="56" width="32" height="28" rx="1" fill="#ffffff" stroke="#047857"/>
+    <path d="M84 63h32M84 70h32M84 77h32M92 56v28M100 56v28M108 56v28" stroke="#9ed3bd" stroke-width="1"/>
+    <!-- corner mark -->
+    <path d="M72 44h6M72 44v6" stroke="#b45309"/>
+    <circle cx="127" cy="95" r="1.6" fill="#b45309" stroke="none"/>
+  </g>
+  <!-- traces -->
+  <path d="M20 70h29M151 70h29M100 14v7M100 119v7" stroke="#9ed3bd" stroke-width="1.5" stroke-dasharray="3 4" fill="none"/>
+</svg>
