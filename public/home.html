@@ -202,7 +202,7 @@
         <div class="hero-copy">
           <p class="eyebrow rise">AutoShop · WebMCP demonstration · synthetic marketplace</p>
           <h1 class="rise">The agent shops.<br>You keep the last word.</h1>
-          <p class="lede rise">AutoShop is a synthetic computer-parts marketplace built to show <em>bounded</em> human–agent authority. An AI agent can browse the catalogue, fill a cart, and triage orders through seven WebMCP tools — but every consequential step stops at a visible human decision, on both sides of the counter.</p>
+          <p class="lede rise">AutoShop is a synthetic computer-parts marketplace built to show <em>bounded</em> human–agent authority. An AI agent can browse the catalogue, fill a cart, and triage orders through seven WebMCP tools. Humans choose the buyer scope and confirm each order; sellers define the mandate and explicitly approve only exceptions.</p>
           <div class="hero-actions rise">
             <a class="btn" href="/buyer">Enter the buyer portal</a>
             <a class="btn btn-secondary" href="/seller">Open the seller portal</a>
@@ -227,7 +227,7 @@
       <div class="wrap">
         <div class="section-head">
           <div><p class="eyebrow">How it works</p><h2 id="how-title">Two portals, one boundary each</h2></div>
-          <p class="hint">Agents get real capability inside a scope. Humans keep the one action that changes stock, money, or trust. The boundary is drawn in the interface, not buried in policy text.</p>
+          <p class="hint">Humans define the scope. Agents act inside it; new buyer authority and out-of-mandate seller actions stay visible and human-controlled. The boundary is drawn in the interface, not buried in policy text.</p>
         </div>
         <div class="circuits">
           <article class="circuit" aria-labelledby="buyer-circuit">
@@ -265,12 +265,12 @@
           <article class="feature agent">
             <svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="#047857" stroke-width="1.5"><circle cx="13" cy="20" r="6"/><circle cx="27" cy="20" r="6" stroke="#9ed3bd"/><path d="M13 20h14" stroke="#9ed3bd" stroke-dasharray="2 2"/><circle cx="13" cy="20" r="2.5" fill="#047857" stroke="none"/></svg>
             <h3>Ask or Auto scope</h3>
-            <p>Ask is the default: the agent must ask before touching the cart. Auto lets it browse and change the cart freely. Neither mode can submit an order on its own.</p>
+            <p>Ask keeps cart changes human-driven. Auto lets the agent browse and change the cart. Neither mode can submit until the buyer visibly confirms the exact order.</p>
           </article>
           <article class="feature human">
             <svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="#b45309" stroke-width="1.5"><rect x="8" y="10" width="24" height="20" rx="2"/><path d="M14 20l4 4 8-9" stroke-width="2"/><path d="M12 34h16" stroke="#ecc48f"/></svg>
             <h3>Visible buyer confirmation</h3>
-            <p>Confirmation mints a one-time token bound to the exact cart version. Change the cart and the authorization is cancelled — the final submit always stops for you.</p>
+            <p>Confirmation mints a one-time token bound to the exact cart version. Change the cart and authorization is cancelled; no order can be submitted until the buyer confirms again.</p>
           </article>
           <article class="feature agent">
             <svg viewBox="0 0 40 40" aria-hidden="true" fill="none" stroke="#047857" stroke-width="1.5"><path d="M8 28a12 12 0 0 1 24 0"/><path d="M20 28L14 18" stroke-width="2"/><circle cx="20" cy="28" r="2" fill="#047857" stroke="none"/><path d="M10 22l2 1M30 22l-2 1M20 15v2" stroke="#9ed3bd"/></svg>
@@ -303,7 +303,7 @@
             <dl>
               <dt>browse_products</dt><dd>Find up to 8 parts by an optional 80-character query. Read-only.</dd>
               <dt class="mut">manage_cart</dt><dd>Add, set, or remove one bounded quantity. Changes cart state only.</dd>
-              <dt class="mut">submit_order</dt><dd>Submit one order — only with a page-minted buyer confirmation token.</dd>
+              <dt class="mut">submit_order</dt><dd>Submit one visibly confirmed order; private authorization never enters the tool input.</dd>
               <div class="note">Seller tools are unavailable on this page.</div>
             </dl>
           </div>
@@ -313,7 +313,7 @@
               <dt>get_mandate</dt><dd>Read the current numerical mandate. Read-only.</dd>
               <dt>list_orders</dt><dd>Read up to 5 order summaries. Buyer content is flagged untrusted.</dd>
               <dt class="mut">accept_order</dt><dd>Accept a bounded quantity with an idempotency key — or get APPROVAL_REQUIRED.</dd>
-              <dt class="mut">commit_action</dt><dd>Commit one human-approved action with a page-minted token.</dd>
+              <dt class="mut">commit_action</dt><dd>Commit one visibly approved action; private authorization never enters the tool input.</dd>
               <div class="note">Removed on logout, session expiry, or leaving the page.</div>
             </dl>
           </div>
@@ -360,13 +360,13 @@
           <a href="/buyer" class="buyer">
             <p class="eyebrow">Buyer portal</p>
             <h3>Build a cart, choose the agent's scope, confirm once.</h3>
-            <p>No account needed. Your session, cart, and confirmation token live only in this browser.</p>
+            <p>No account needed. A private browser cookie scopes server-side demo state; the one-time confirmation token stays only in page memory.</p>
             <span class="go">Enter as buyer</span>
           </a>
           <a href="/seller" class="seller">
             <p class="eyebrow">Seller portal</p>
             <h3>Sign in, tune the mandate, approve the exceptions.</h3>
-            <p>Uses the privately supplied demo credential. Nothing is stored in the page or the repository.</p>
+            <p>Uses the privately supplied demo credential. The credential is never embedded in the page or repository.</p>
             <span class="go">Sign in as seller</span>
           </a>
         </div>

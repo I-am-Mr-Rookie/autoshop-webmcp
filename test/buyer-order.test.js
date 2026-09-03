@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { createOrderHandler } from '../netlify/functions/buyer-order.mjs';
 import { hashConfirmationToken } from '../netlify/functions/buyer-confirm.mjs';
 import { hashSessionToken } from '../netlify/functions/buyer.mjs';
+import { createPostgresRepository } from '../netlify/functions/_shared/postgres-repository.mjs';
 
 const rawSession = 'a'.repeat(64);
 const rawConfirmation = 'b'.repeat(64);
@@ -73,6 +74,46 @@ test('exposes only the cookie-bound synthetic order status', async () => {
   const missing = await handler(request('GET', null, '?order_id=order_other'));
   assert.equal(missing.status, 404);
   assert.equal((await missing.json()).error.code, 'NOT_FOUND');
+});
+
+test('recovers the latest cookie-bound accepted order and receipt without an order id', async () => {
+  const order = {
+    order_id: 'order_demo', status: 'accepted', total_cents: 9800, version: 2,
+    created_at: '2026-09-02T12:00:00.000Z',
+    receipt: { receipt_id: 'receipt_demo', order_id: 'order_demo', issued_at: '2026-09-02T12:01:00.000Z', version: 1 }
+  };
+  const repository = {
+    async findBuyerSession(id) { return id === sessionId ? { id } : null; },
+    async getOrder(id, orderId) {
+      assert.equal(id, sessionId);
+      assert.equal(orderId, undefined);
+      return order;
+    }
+  };
+  const handler = createOrderHandler(async () => repository);
+
+  const response = await handler(request('GET'));
+  assert.equal(response.status, 200);
+  assert.deepEqual((await response.json()).order, order);
+});
+
+test('buyer order lookup joins the immutable receipt and selects the latest session order', async () => {
+  let query;
+  const repository = createPostgresRepository({ pool: { query: async (text, params) => {
+    query = { text, params };
+    return { rows: [{
+      order_id: 'order_demo', status: 'accepted', total_cents: 9800, version: 2,
+      created_at: new Date('2026-09-02T12:00:00.000Z'),
+      receipt_body: { receipt_id: 'receipt_demo', order_id: 'order_demo' },
+      issued_at: new Date('2026-09-02T12:01:00.000Z'), receipt_version: 1
+    }] };
+  } } });
+
+  const order = await repository.getOrder(sessionId);
+  assert.match(query.text, /LEFT JOIN receipts r ON r\.order_id = o\.id/);
+  assert.match(query.text, /ORDER BY o\.created_at DESC, o\.id DESC LIMIT 1/);
+  assert.deepEqual(query.params, [sessionId, null]);
+  assert.equal(order.receipt.receipt_id, 'receipt_demo');
 });
 
 test('rejects malformed, unauthorized, expired, and stale submissions', async () => {

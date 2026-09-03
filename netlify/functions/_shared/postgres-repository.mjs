@@ -373,10 +373,22 @@ export const createPostgresRepository = db => ({
 
   async getOrder(sessionId, orderId) {
     const { rows: [order] } = await db.pool.query(`
-      SELECT id AS order_id, status, total_cents, version, created_at
-      FROM orders WHERE id = $1 AND buyer_session_id = $2
-    `, [orderId, sessionId]);
-    return order ?? null;
+      SELECT o.id AS order_id, o.status, o.total_cents, o.version, o.created_at,
+        r.body AS receipt_body, r.issued_at, r.version AS receipt_version
+      FROM orders o LEFT JOIN receipts r ON r.order_id = o.id
+      WHERE o.buyer_session_id = $1 AND ($2::text IS NULL OR o.id = $2)
+      ORDER BY o.created_at DESC, o.id DESC LIMIT 1
+    `, [sessionId, orderId ?? null]);
+    return order ? {
+      order_id: order.order_id,
+      status: order.status,
+      total_cents: order.total_cents,
+      version: order.version,
+      created_at: new Date(order.created_at).toISOString(),
+      receipt: order.receipt_body
+        ? receiptResult({ body: order.receipt_body, issued_at: order.issued_at, version: order.receipt_version })
+        : null
+    } : null;
   },
 
   async submitOrder(sessionId, now, orderId, tokenHash) {

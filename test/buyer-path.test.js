@@ -27,6 +27,10 @@ test('buyer WebMCP tools use the buyer APIs and return bounded results', async (
     if (url === '/api/buyer') return new Response(JSON.stringify({
       ok: true, cart: { items: [{ product_id: 'ram-1', quantity: 3 }], total_cents: 14700, version: 2 }
     }));
+    if (url === '/api/buyer/confirm') return new Response(JSON.stringify({
+      ok: true, mode: 'Auto', order_id: 'order_demo', cart_version: 2,
+      confirmation_expires_at: '2026-09-03T13:00:00.000Z', confirm_token: 'a'.repeat(64)
+    }));
     return new Response(JSON.stringify({
       ok: true, replayed: false, order: { order_id: 'order_demo', status: 'requested', total_cents: 14700, version: 1 }
     }), { status: 201 });
@@ -36,15 +40,44 @@ test('buyer WebMCP tools use the buyer APIs and return bounded results', async (
     assert.deepEqual(await app.BUYER_TOOLS[0].execute({ query: 'ddr', limit: 1 }), {
       ok: true, products: [{ id: 'ram-1', name: '16GB DDR5 Kit', price_cents: 4900, stock: 12 }]
     });
+    globalThis.document.querySelector = () => ({ value: 'Ask' });
+    assert.equal((await app.BUYER_TOOLS[1].execute({ action: 'add', product_id: 'ram-1', quantity: 3 })).error.code, 'CONFIRMATION_REQUIRED');
+    globalThis.document.querySelector = () => ({ value: 'Auto' });
     assert.equal((await app.BUYER_TOOLS[1].execute({ action: 'add', product_id: 'ram-1', quantity: 3 })).cart.version, 2);
-    assert.equal((await app.BUYER_TOOLS[2].execute({ order_id: 'order_demo', confirm_token: 'a'.repeat(64) })).order.status, 'requested');
+    await app.requestBuyerConfirmation(globalThis.fetch, {
+      mode: 'Auto', buyer_name: 'Judge', buyer_email: 'judge@example.test', buyer_country: 'BD', cart_version: 2
+    });
+    assert.equal((await app.BUYER_TOOLS[2].execute({ order_id: 'order_demo' })).order.status, 'requested');
     assert.match(calls[0].url, /^\/api\/buyer\?query=ddr&limit=1$/);
     assert.deepEqual(JSON.parse(calls[1].options.body), { action: 'add', product_id: 'ram-1', quantity: 3 });
-    assert.deepEqual(JSON.parse(calls[2].options.body), { order_id: 'order_demo', confirm_token: 'a'.repeat(64) });
+    assert.equal(calls.some(call => call.url === '/api/buyer' && JSON.parse(call.options.body).action === 'add'), true);
+    const submitted = calls.find(call => call.url === '/api/buyer/order');
+    assert.deepEqual(JSON.parse(submitted.options.body), { order_id: 'order_demo', confirm_token: 'a'.repeat(64) });
+    assert.equal(app.getBuyerAuthorization(), undefined);
   } finally {
     globalThis.document = originalDocument;
     globalThis.fetch = originalFetch;
   }
+});
+
+test('buyer startup recovers the latest order and renders its receipt without browser storage', async () => {
+  let url;
+  const result = await app.readBuyerOrder(async requestedUrl => {
+    url = requestedUrl;
+    return new Response(JSON.stringify({
+      ok: true,
+      order: {
+        order_id: 'order_demo', status: 'accepted', total_cents: 14700, version: 2,
+        receipt: { receipt_id: 'receipt_demo' }
+      }
+    }));
+  });
+  const source = await readFile(new URL('../public/app.js', import.meta.url), 'utf8');
+
+  assert.equal(url, '/api/buyer/order');
+  assert.equal(result.order.receipt.receipt_id, 'receipt_demo');
+  assert.match(source, /await readBuyerOrder\(fetch\)/);
+  assert.doesNotMatch(source, /localStorage|sessionStorage/);
 });
 
 test('demo reset sends only the explicit reset confirmation', async () => {

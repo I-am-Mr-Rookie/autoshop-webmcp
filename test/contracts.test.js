@@ -5,11 +5,11 @@ import * as app from '../public/app.js';
 const validInputs = {
   browse_products: {},
   manage_cart: { action: 'add', product_id: 'cpu-1', quantity: 6 },
-  submit_order: { order_id: 'order_1', confirm_token: '1234567890abcdef' },
+  submit_order: { order_id: 'order_1' },
   get_mandate: {},
   list_orders: {},
   accept_order: { order_id: 'order_1', quantity: 6, idempotency_key: 'request-1' },
-  commit_action: { action_id: 'action_1', confirm_token: '1234567890abcdef', idempotency_key: 'request-2' }
+  commit_action: { action_id: 'action_1', idempotency_key: 'request-2' }
 };
 
 test('freezes seven strict role-scoped tool contracts', () => {
@@ -29,6 +29,8 @@ test('freezes seven strict role-scoped tool contracts', () => {
   assert.equal(app.SELLER_TOOLS[1].annotations.untrustedContentHint, true);
   assert.equal(app.BUYER_TOOLS[0].annotations.readOnlyHint, true);
   assert.equal(app.SELLER_TOOLS[0].annotations.readOnlyHint, true);
+  assert.equal(Object.hasOwn(app.BUYER_TOOLS[2].inputSchema.properties, 'confirm_token'), false);
+  assert.equal(Object.hasOwn(app.SELLER_TOOLS[3].inputSchema.properties, 'confirm_token'), false);
 });
 
 test('runtime validation returns bounded structured errors', async () => {

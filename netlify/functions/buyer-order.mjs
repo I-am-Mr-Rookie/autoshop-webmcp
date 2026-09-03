@@ -33,10 +33,9 @@ export const createOrderHandler = (getRepository, options = {}) => async request
   const url = new URL(request.url);
   const input = method === 'POST' ? await readInput(request) : null;
   const queryKeys = [...url.searchParams.keys()];
-  const orderId = method === 'GET' && queryKeys.length === 1 && queryKeys[0] === 'order_id'
-    ? url.searchParams.get('order_id')
-    : null;
-  if ((method === 'POST' && !input) || (method === 'GET' && !idPattern.test(orderId ?? '')) || !['GET', 'POST'].includes(method)) {
+  const orderId = queryKeys.length === 1 && queryKeys[0] === 'order_id' ? url.searchParams.get('order_id') : undefined;
+  const validGet = method === 'GET' && (queryKeys.length === 0 || (queryKeys.length === 1 && idPattern.test(orderId ?? '')));
+  if ((method === 'POST' && !input) || (method === 'GET' && !validGet) || !['GET', 'POST'].includes(method)) {
     return json({ ok: false, error: { code: 'VALIDATION', message: 'Input does not match the synthetic order contract.' } }, 400);
   }
 
@@ -51,7 +50,7 @@ export const createOrderHandler = (getRepository, options = {}) => async request
 
     if (method === 'GET') {
       const order = await repository.getOrder(session.id, orderId);
-      return order ? json({ ok: true, order }) : errorResponse('NOT_FOUND');
+      return order ? json({ ok: true, order }) : orderId === undefined ? json({ ok: true, order: null }) : errorResponse('NOT_FOUND');
     }
 
     const result = await repository.submitOrder(session.id, now, input.order_id, hashConfirmationToken(input.confirm_token));

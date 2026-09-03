@@ -57,6 +57,9 @@ test('root registers no tools and serves the script-free public homepage', async
   assert.doesNotMatch(home, /<script/i);
   assert.match(home, /href="\/buyer"/);
   assert.match(home, /href="\/seller"/);
+  assert.doesNotMatch(home, /every consequential step stops|session, cart, and confirmation token live only in this browser/i);
+  assert.match(home, /Ask keeps cart changes human-driven/);
+  assert.match(home, /private browser cookie scopes server-side demo state/);
 });
 
 test('a failed stock update rolls back without creating a receipt', async () => {

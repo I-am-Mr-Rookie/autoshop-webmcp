@@ -24,7 +24,6 @@ export const MANDATE_OUTPUT_SCHEMA = Object.freeze({
 });
 
 const id = { type: 'string', minLength: 1, maxLength: 64, pattern: '^[A-Za-z0-9_-]+$' };
-const token = { type: 'string', minLength: 16, maxLength: 256, pattern: '^[A-Za-z0-9_-]+$' };
 const idempotencyKey = { type: 'string', minLength: 8, maxLength: 128, pattern: '^[A-Za-z0-9_-]+$' };
 const quantity = { type: 'integer', minimum: 1, maximum: 20 };
 const schema = (properties, required = []) => ({ type: 'object', properties, required, additionalProperties: false });
@@ -35,11 +34,11 @@ export const TOOL_INPUT_SCHEMAS = Object.freeze({
     limit: { type: 'integer', minimum: 1, maximum: 8 }
   }),
   manage_cart: schema({ action: { type: 'string', enum: ['add', 'set', 'remove'] }, product_id: id, quantity }, ['action', 'product_id', 'quantity']),
-  submit_order: schema({ order_id: id, confirm_token: token }, ['order_id', 'confirm_token']),
+  submit_order: schema({ order_id: id }, ['order_id']),
   get_mandate: schema({}),
   list_orders: schema({ limit: { type: 'integer', minimum: 1, maximum: 5 } }),
   accept_order: schema({ order_id: id, quantity, idempotency_key: idempotencyKey }, ['order_id', 'quantity', 'idempotency_key']),
-  commit_action: schema({ action_id: id, confirm_token: token, idempotency_key: idempotencyKey }, ['action_id', 'confirm_token', 'idempotency_key'])
+  commit_action: schema({ action_id: id, idempotency_key: idempotencyKey }, ['action_id', 'idempotency_key'])
 });
 
 const failure = (code, message, retryable) => ({ ok: false, error: { code, message, retryable } });
@@ -105,7 +104,7 @@ export async function submitBuyerOrder(fetcher, input) {
 }
 
 export async function readBuyerOrder(fetcher, orderId) {
-  const response = await fetcher(`/api/buyer/order?order_id=${encodeURIComponent(orderId)}`);
+  const response = await fetcher(orderId ? `/api/buyer/order?order_id=${encodeURIComponent(orderId)}` : '/api/buyer/order');
   const result = await response.json();
   if (!response.ok) throw new Error(result.error?.message ?? 'Order status is unavailable.');
   return result;
@@ -134,13 +133,23 @@ export const BUYER_TOOLS = Object.freeze([
     })),
   tool('manage_cart', 'Manage cart', 'Add, set, or remove one bounded product quantity in the temporary buyer cart. This changes cart state only.', mutating,
     browserTool(async input => {
+      if (document.querySelector?.('input[name="mode"]:checked')?.value !== 'Auto') {
+        return failure('CONFIRMATION_REQUIRED', 'The buyer must select Auto before the agent can change the cart.', false);
+      }
       const result = await mutateBuyerCart(fetch, input);
       if (typeof document.dispatchEvent === 'function') document.dispatchEvent(new Event('autoshop:buyer-change'));
       return result;
     })),
-  tool('submit_order', 'Submit order', 'Submit one synthetic order only with a page-minted buyer confirmation token. This is consequential and never processes payment.', mutating,
+  tool('submit_order', 'Submit order', 'Submit the visibly confirmed synthetic order. The page keeps its one-time authorization private; this never processes payment.', mutating,
     browserTool(async input => {
-      const result = await submitBuyerOrder(fetch, input);
+      if (buyerAuthorization?.order_id !== input.order_id) {
+        return failure('CONFIRMATION_REQUIRED', 'The buyer must visibly confirm this exact order before submission.', false);
+      }
+      const result = await submitBuyerOrder(fetch, {
+        order_id: input.order_id,
+        confirm_token: buyerAuthorization.confirm_token
+      });
+      buyerAuthorization = undefined;
       if (typeof document.dispatchEvent === 'function') document.dispatchEvent(new Event('autoshop:order-change'));
       return result;
     }))
@@ -195,12 +204,19 @@ const ACCEPT_ORDER_TOOL = tool(
 export const COMMIT_ACTION_TOOL = tool(
   'commit_action',
   'Commit approved action',
-  'Commit one human-approved pending action using a page-minted token and idempotency key. This is consequential.',
+  'Commit one visibly approved pending action with an idempotency key. The page keeps its one-time authorization private.',
   mutating,
   async input => {
     if (typeof document === 'undefined') return unavailable();
+    if (sellerAuthorization?.approval?.action_id !== input.action_id) {
+      return failure('CONFIRMATION_REQUIRED', 'The seller must visibly approve this exact action before commit.', false);
+    }
     try {
-      const result = await commitSellerAction(fetch, input);
+      const result = await commitSellerAction(fetch, {
+        action_id: input.action_id,
+        confirm_token: sellerAuthorization.confirm_token,
+        idempotency_key: input.idempotency_key
+      });
       sellerAuthorization = undefined;
       if (typeof document.dispatchEvent === 'function') document.dispatchEvent(new Event('autoshop:seller-authorization-cleared'));
       if (typeof document.dispatchEvent === 'function') document.dispatchEvent(new Event('autoshop:seller-change'));
@@ -324,6 +340,10 @@ async function setupBuyerConfirmation() {
   let authorizationTimer;
 
   const money = cents => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
+  const renderOrder = order => {
+    if (!order) return;
+    orderStatus.textContent = `Order ${order.order_id}: ${order.status}. Synthetic total ${money(order.total_cents)}.${order.receipt ? ` Receipt ${order.receipt.receipt_id}.` : ''}`;
+  };
   const clearAuthorization = () => {
     clearTimeout(authorizationTimer);
     buyerAuthorization = undefined;
@@ -387,6 +407,12 @@ async function setupBuyerConfirmation() {
   };
 
   await load();
+  try {
+    const latestOrder = await readBuyerOrder(fetch);
+    renderOrder(latestOrder.order);
+  } catch (error) {
+    orderStatus.textContent = error.message;
+  }
 
   search.addEventListener('submit', event => {
     event.preventDefault();
@@ -437,7 +463,7 @@ async function setupBuyerConfirmation() {
         order_id: buyerAuthorization.order_id,
         confirm_token: buyerAuthorization.confirm_token
       });
-      orderStatus.textContent = `Order ${result.order.order_id}: ${result.order.status}. Synthetic total ${money(result.order.total_cents)}.`;
+      renderOrder(result.order);
       confirmationStatus.textContent = 'Authorization consumed. The seller can now review this order.';
       clearAuthorization();
     } catch (error) {
@@ -448,8 +474,8 @@ async function setupBuyerConfirmation() {
 
   document.addEventListener('autoshop:buyer-change', () => { clearAuthorization(); load(); });
   document.addEventListener('autoshop:order-change', () => {
-    if (buyerAuthorization) readBuyerOrder(fetch, buyerAuthorization.order_id)
-      .then(result => { orderStatus.textContent = `Order ${result.order.order_id}: ${result.order.status}.`; })
+    readBuyerOrder(fetch, buyerAuthorization?.order_id)
+      .then(result => { renderOrder(result.order); })
       .catch(error => { orderStatus.textContent = error.message; });
   });
 }
