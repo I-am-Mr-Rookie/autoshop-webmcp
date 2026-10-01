@@ -88,7 +88,7 @@ The production Railway project is [autoshop-webmcp](https://railway.com/project/
 
 `migrate.mjs` applies ordered SQL migrations once, records them in `autoshop_migrations`, and runs under a transaction and advisory lock. Deployments never reset or reseed production data.
 
-The October 2026 migration preserved all 21 source records across ten application tables, including the existing order, receipt, approvals, inventory, mandate, carts, and seller credential. Every imported table was verified against its source checksum; `autoshop_data_imports` retains that audit. The temporary export route and import credential were removed after cutover. The former Netlify URL redirects to Railway.
+The October 2026 migration preserved all 21 source records across ten application tables, including the existing order, receipt, approvals, inventory, mandate, carts, and seller credential. Every imported table was verified against its source checksum; `autoshop_data_imports` retains that audit. The temporary export route and import credential were removed after cutover. The former Netlify URL redirects to Railway. Original source tables remain intact in the Netlify `autoshop_retired` schema as a backup; historical app and export routes can no longer read them.
 
 ## Architecture
 
