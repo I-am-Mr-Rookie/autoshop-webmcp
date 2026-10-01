@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { getDatabase } from '@netlify/database';
+import { getDatabase, withMigrationLock } from '../../database.mjs';
 import { createPostgresRepository } from './_shared/postgres-repository.mjs';
 import { authenticateSeller } from './seller-auth.mjs';
 
@@ -51,6 +51,6 @@ export const createApprovalHandler = (getRepository, options = {}) => async requ
   }
 };
 
-export default createApprovalHandler(async () => createPostgresRepository(getDatabase()));
+export default withMigrationLock(createApprovalHandler(async () => createPostgresRepository(getDatabase())));
 
 export const config = { path: '/api/seller/approval', method: ['POST'] };

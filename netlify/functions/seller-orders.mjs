@@ -1,4 +1,4 @@
-import { getDatabase } from '@netlify/database';
+import { getDatabase, withMigrationLock } from '../../database.mjs';
 import { createPostgresRepository } from './_shared/postgres-repository.mjs';
 import { authenticateSeller } from './seller-auth.mjs';
 
@@ -28,6 +28,6 @@ export const createSellerOrdersHandler = (getRepository, options = {}) => async 
   }
 };
 
-export default createSellerOrdersHandler(async () => createPostgresRepository(getDatabase()));
+export default withMigrationLock(createSellerOrdersHandler(async () => createPostgresRepository(getDatabase())));
 
 export const config = { path: '/api/seller/orders', method: ['GET'] };

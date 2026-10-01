@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { getDatabase } from '@netlify/database';
+import { getDatabase, withMigrationLock } from '../../database.mjs';
 import { createPostgresRepository } from './_shared/postgres-repository.mjs';
 
 const DAY_SECONDS = 86400;
@@ -80,6 +80,6 @@ export const createHandler = (getRepository, options = {}) => async request => {
   }
 };
 
-export default createHandler(async () => createPostgresRepository(getDatabase()));
+export default withMigrationLock(createHandler(async () => createPostgresRepository(getDatabase())));
 
 export const config = { path: '/api/buyer', method: ['GET', 'POST'] };

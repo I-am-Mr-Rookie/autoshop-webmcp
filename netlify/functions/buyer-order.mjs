@@ -1,4 +1,4 @@
-import { getDatabase } from '@netlify/database';
+import { getDatabase, withMigrationLock } from '../../database.mjs';
 import { createPostgresRepository } from './_shared/postgres-repository.mjs';
 import { hashConfirmationToken } from './buyer-confirm.mjs';
 import { hashSessionToken, readBuyerToken } from './buyer.mjs';
@@ -62,6 +62,6 @@ export const createOrderHandler = (getRepository, options = {}) => async request
   }
 };
 
-export default createOrderHandler(async () => createPostgresRepository(getDatabase()));
+export default withMigrationLock(createOrderHandler(async () => createPostgresRepository(getDatabase())));
 
 export const config = { path: '/api/buyer/order', method: ['GET', 'POST'] };

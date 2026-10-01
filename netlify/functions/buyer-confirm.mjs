@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { getDatabase } from '@netlify/database';
+import { getDatabase, withMigrationLock } from '../../database.mjs';
 import { createPostgresRepository } from './_shared/postgres-repository.mjs';
 import { hashSessionToken, readBuyerToken } from './buyer.mjs';
 
@@ -68,6 +68,6 @@ export const createConfirmationHandler = (getRepository, options = {}) => async 
   }
 };
 
-export default createConfirmationHandler(async () => createPostgresRepository(getDatabase()));
+export default withMigrationLock(createConfirmationHandler(async () => createPostgresRepository(getDatabase())));
 
 export const config = { path: '/api/buyer/confirm', method: ['POST'] };
