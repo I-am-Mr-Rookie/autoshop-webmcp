@@ -5,6 +5,7 @@ const pool = getDatabase().pool;
 const client = await pool.connect();
 try {
   await client.query('BEGIN');
+  await client.query("SET LOCAL TIME ZONE 'UTC'");
   await client.query('SELECT pg_advisory_xact_lock(731904202)');
   await client.query(`CREATE TABLE IF NOT EXISTS autoshop_data_imports (
     source TEXT PRIMARY KEY, imported_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), counts JSONB NOT NULL, hashes JSONB NOT NULL
@@ -31,9 +32,8 @@ try {
         await client.query(`INSERT INTO ${table} (${keys.map(key => `"${key}"`).join(',')}) VALUES (${keys.map((_, i) => `$${i + 1}`).join(',')})`, values);
       }
       const key = table === 'seller_sessions' ? 'token_hash' : 'id';
-      const rows = (await client.query(`SELECT * FROM ${table} ORDER BY ${key}`)).rows;
-      // Serialize timestamps exactly as the HTTPS export does before comparing.
-      if (fingerprint(JSON.parse(JSON.stringify(rows))) !== snapshot.hashes[table]) throw new Error('Imported records differ');
+      const rows = (await client.query(`SELECT to_jsonb(t) AS record FROM ${table} t ORDER BY ${key}`)).rows.map(row => row.record);
+      if (fingerprint(rows) !== snapshot.hashes[table]) throw new Error('Imported records differ');
     }
     await client.query('INSERT INTO autoshop_data_imports (source, counts, hashes) VALUES ($1, $2, $3)', [source, snapshot.counts, snapshot.hashes]);
     console.log('Verified Netlify import:', JSON.stringify(snapshot.counts));

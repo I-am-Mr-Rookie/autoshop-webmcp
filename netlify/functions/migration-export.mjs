@@ -17,10 +17,11 @@ export const createExportHandler = (getPool, token) => async request => {
   const client = await getPool().connect();
   try {
     await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+    await client.query("SET LOCAL TIME ZONE 'UTC'");
     const data = {};
     for (const table of tables) {
       const key = table === 'seller_sessions' ? 'token_hash' : 'id';
-      data[table] = (await client.query(`SELECT * FROM ${table} ORDER BY ${key}`)).rows;
+      data[table] = (await client.query(`SELECT to_jsonb(t) AS record FROM ${table} t ORDER BY ${key}`)).rows.map(row => row.record);
     }
     await client.query('COMMIT');
     return Response.json({ version: 1, data, counts: Object.fromEntries(tables.map(table => [table, data[table].length])),
