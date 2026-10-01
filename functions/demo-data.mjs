@@ -1,5 +1,5 @@
-import { getDatabase, withMigrationLock } from '../../database.mjs';
-import { resetDemoData } from '../../persistence.js';
+import { getDatabase } from '../database.mjs';
+import { resetDemoData } from '../persistence.js';
 import { createPostgresRepository } from './_shared/postgres-repository.mjs';
 import { authenticateSeller } from './seller-auth.mjs';
 
@@ -30,8 +30,8 @@ export const createHandler = (getRepository, options = {}) => async request => {
   }
 };
 
-export default withMigrationLock(createHandler(async () => createPostgresRepository(getDatabase()), {
+export default createHandler(async () => createPostgresRepository(getDatabase()), {
   passwordHash: process.env.SELLER_PASSWORD_HASH
-}));
+});
 
 export const config = { path: '/api/demo-data/reset', method: ['POST'] };

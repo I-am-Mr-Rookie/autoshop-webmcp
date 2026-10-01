@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import * as app from '../public/app.js';
-import { createPostgresRepository } from '../netlify/functions/_shared/postgres-repository.mjs';
+import { createPostgresRepository } from '../functions/_shared/postgres-repository.mjs';
 
 const respond = (status, body) => new Response(JSON.stringify(body), { status });
 
@@ -196,8 +196,8 @@ test('independent seller sessions survive another login and isolated logout', as
 
 test('every seller authorization path uses the multi-session table', async () => {
   const [source, migration] = await Promise.all([
-    readFile(new URL('../netlify/functions/_shared/postgres-repository.mjs', import.meta.url), 'utf8'),
-    readFile(new URL('../netlify/database/migrations/011_seller-sessions/migration.sql', import.meta.url), 'utf8')
+    readFile(new URL('../functions/_shared/postgres-repository.mjs', import.meta.url), 'utf8'),
+    readFile(new URL('../migrations/011_seller-sessions/migration.sql', import.meta.url), 'utf8')
   ]);
   assert.match(migration, /CREATE TABLE seller_sessions[\s\S]+token_hash TEXT PRIMARY KEY[\s\S]+REFERENCES seller_users\(id\) ON DELETE CASCADE/);
   assert.doesNotMatch(source, /WHERE session_token_hash = \$1/);

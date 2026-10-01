@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { createMandateHandler } from '../netlify/functions/seller-mandate.mjs';
-import { hashSessionToken } from '../netlify/functions/seller-auth.mjs';
-import { isOrderEligible } from '../netlify/functions/_shared/postgres-repository.mjs';
+import { createMandateHandler } from '../functions/seller-mandate.mjs';
+import { hashSessionToken } from '../functions/seller-auth.mjs';
+import { isOrderEligible } from '../functions/_shared/postgres-repository.mjs';
 
 const rawSession = 'a'.repeat(64);
 const now = new Date('2026-09-02T12:00:00.000Z');
@@ -111,7 +111,7 @@ test('re-evaluates quantity six without mutating stock or silently accepting it'
   assert.equal(isOrderEligible({ ...order, quantity: 5 }, products, input), false);
   assert.equal(isOrderEligible({ ...order, quantity: 10, items: [...order.items, { product_id: 'ram-1', quantity: 4 }] }, products, { ...input, max_items_per_order: 10 }), false);
 
-  const repository = await readFile(new URL('../netlify/functions/_shared/postgres-repository.mjs', import.meta.url), 'utf8');
+  const repository = await readFile(new URL('../functions/_shared/postgres-repository.mjs', import.meta.url), 'utf8');
   const mandateUpdate = repository.slice(repository.indexOf('async updateMandate'), repository.indexOf('async listProducts'));
   assert.doesNotMatch(mandateUpdate, /UPDATE\s+products/i);
   assert.match(mandateUpdate, /state = 'replaced'/);

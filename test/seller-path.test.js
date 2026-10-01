@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import * as app from '../public/app.js';
-import { hashSessionToken } from '../netlify/functions/seller-auth.mjs';
-import { createPostgresRepository } from '../netlify/functions/_shared/postgres-repository.mjs';
+import { hashSessionToken } from '../functions/seller-auth.mjs';
+import { createPostgresRepository } from '../functions/_shared/postgres-repository.mjs';
 
 const rawToken = 'a'.repeat(64);
 const order = {
@@ -30,7 +30,7 @@ test('seller portal exposes queue, decision, approval, commit, receipt, privileg
 });
 
 test('authenticated seller order endpoint returns a bounded queue', async () => {
-  const { createSellerOrdersHandler } = await import('../netlify/functions/seller-orders.mjs');
+  const { createSellerOrdersHandler } = await import('../functions/seller-orders.mjs');
   let limit;
   const repository = {
     async findSellerSession(tokenHash) {
@@ -48,7 +48,7 @@ test('authenticated seller order endpoint returns a bounded queue', async () => 
 });
 
 test('seller order endpoint rejects unauthenticated and unbounded reads', async () => {
-  const { createSellerOrdersHandler } = await import('../netlify/functions/seller-orders.mjs');
+  const { createSellerOrdersHandler } = await import('../functions/seller-orders.mjs');
   const repository = { findSellerSession: async () => null, listSellerOrders: async () => assert.fail('must not list') };
   const handler = createSellerOrdersHandler(async () => repository);
   assert.equal((await handler(new Request('https://example.test/api/seller/orders'))).status, 401);

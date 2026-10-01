@@ -9,7 +9,7 @@ try {
   await client.query(`CREATE TABLE IF NOT EXISTS autoshop_migrations (
     name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`);
-  const directory = new URL('./netlify/database/migrations/', import.meta.url);
+  const directory = new URL('./migrations/', import.meta.url);
   const names = (await readdir(directory)).filter(name => /^\d+_/.test(name)).sort();
   for (const name of names) {
     const applied = await client.query('SELECT 1 FROM autoshop_migrations WHERE name = $1', [name]);

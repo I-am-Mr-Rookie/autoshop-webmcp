@@ -1,4 +1,4 @@
-import { getDatabase, withMigrationLock } from '../../database.mjs';
+import { getDatabase } from '../database.mjs';
 import { createPostgresRepository } from './_shared/postgres-repository.mjs';
 import { authenticateSeller } from './seller-auth.mjs';
 
@@ -58,6 +58,6 @@ export const createMandateHandler = (getRepository, options = {}) => async reque
   }
 };
 
-export default withMigrationLock(createMandateHandler(async () => createPostgresRepository(getDatabase())));
+export default createMandateHandler(async () => createPostgresRepository(getDatabase()));
 
 export const config = { path: '/api/seller/mandate', method: ['GET', 'PUT'] };

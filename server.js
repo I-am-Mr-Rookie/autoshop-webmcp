@@ -19,7 +19,7 @@ export const securityHeaders = {
 const modules = await Promise.all([
   'buyer', 'buyer-confirm', 'buyer-order', 'seller-auth', 'seller-orders',
   'seller-mandate', 'seller-accept', 'seller-approval', 'seller-commit', 'demo-data'
-].map(name => import(`./netlify/functions/${name}.mjs`)));
+].map(name => import(`./functions/${name}.mjs`)));
 const routes = new Map(modules.map(module => [module.config.path, module]));
 
 export const createAppServer = (options = {}) => createServer(async (req, res) => {
@@ -34,6 +34,7 @@ export const createAppServer = (options = {}) => createServer(async (req, res) =
         : `${req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http'}://${req.headers.host}`);
     if (!req.url.startsWith('/') || req.url.startsWith('//')) return send(400, 'Invalid request URL.');
     const url = new URL(req.url, origin);
+    if (url.origin !== new URL(origin).origin) return send(400, 'Invalid request origin.');
     if (url.pathname === '/healthz' && ['GET', 'HEAD'].includes(req.method)) {
       await (options.healthcheck ?? (() => getDatabase().pool.query('SELECT 1')))();
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });

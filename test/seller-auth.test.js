@@ -5,7 +5,7 @@ import {
   createHandler,
   createPasswordHash,
   hashSessionToken
-} from '../netlify/functions/seller-auth.mjs';
+} from '../functions/seller-auth.mjs';
 import { createSeedRecords } from '../persistence.js';
 
 const rawSession = 'a'.repeat(64);
@@ -109,8 +109,8 @@ test('rejects malformed or wrong credentials and rate-limits the seeded account'
 test('keeps the seller credential out of source while wiring persistence and accessible UI', async () => {
   assert.throws(() => createSeedRecords(), /SELLER_PASSWORD_HASH/);
   assert.throws(() => createSeedRecords('plaintext'), /SELLER_PASSWORD_HASH/);
-  const migration = await readFile(new URL('../netlify/database/migrations/004_seller-authentication/migration.sql', import.meta.url), 'utf8');
-  const repository = await readFile(new URL('../netlify/functions/_shared/postgres-repository.mjs', import.meta.url), 'utf8');
+  const migration = await readFile(new URL('../migrations/004_seller-authentication/migration.sql', import.meta.url), 'utf8');
+  const repository = await readFile(new URL('../functions/_shared/postgres-repository.mjs', import.meta.url), 'utf8');
   const html = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
   const client = await readFile(new URL('../public/app.js', import.meta.url), 'utf8');
 

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createHandler, hashSessionToken } from '../netlify/functions/buyer.mjs';
+import { createHandler, hashSessionToken } from '../functions/buyer.mjs';
 
 const products = [
   { id: 'cpu-1', name: 'Ryzen 5 7600', price_cents: 18900, stock: 10 },

@@ -2,7 +2,7 @@
 
 **A seller-controlled authority layer for agentic commerce.**
 
-[Live product](https://autoshop-webmcp.netlify.app/) · [Seller control plane](https://autoshop-webmcp.netlify.app/seller) · [Buyer workload generator](https://autoshop-webmcp.netlify.app/buyer)
+[Live product](https://autoshop-webmcp-production.up.railway.app/) · [Seller control plane](https://autoshop-webmcp-production.up.railway.app/seller) · [Buyer workload generator](https://autoshop-webmcp-production.up.railway.app/buyer)
 
 ![AutoShop's buyer, agent, and seller authority circuit](public/img/hero-circuit.svg)
 
@@ -30,8 +30,8 @@ Seller tools register only after authentication and are removed on logout, expir
 
 Use ChatGPT's in-app Browser or a WebMCP-enabled Chrome build. Start in the seller control plane so the product and mandate are clear before generating its workload.
 
-1. Open the [seller control plane](https://autoshop-webmcp.netlify.app/seller), sign in with the private judging credential, and verify that exactly four seller tools appear. Ask for the live mandate: its item cap is five.
-2. Open the [buyer workload generator](https://autoshop-webmcp.netlify.app/buyer). Verify that only three buyer tools are available and ask the agent to find DDR memory.
+1. Open the [seller control plane](https://autoshop-webmcp-production.up.railway.app/seller), sign in with the private judging credential, and verify that exactly four seller tools appear. Ask for the live mandate: its item cap is five.
+2. Open the [buyer workload generator](https://autoshop-webmcp-production.up.railway.app/buyer). Verify that only three buyer tools are available and ask the agent to find DDR memory.
 3. Select **Auto**, then ask the agent to add six units of the 16 GB DDR5 RAM. Enter clearly synthetic buyer details, visibly confirm the exact cart, and ask the agent to submit the displayed order ID.
 4. Return to the seller control plane. Ask the agent to list orders and accept six units with a fresh idempotency key. The tool returns `APPROVAL_REQUIRED` without changing stock because the mandate allows five.
 5. Review that pending action in the page and check the explicit approval box. Ask the agent to call `commit_action` with the displayed action ID and a fresh idempotency key.
@@ -44,29 +44,51 @@ Use ChatGPT's in-app Browser or a WebMCP-enabled Chrome build. Start in the sell
 - One-time authorization tokens are random, hashed at rest, exact-action bound, expiring, and absent from WebMCP schemas.
 - Inventory mutation and receipt creation share one database transaction; idempotency keys make retries deterministic.
 - Product lookup and mandate checks are server-side; DOM text and buyer-authored fields do not grant authority.
-- CSP, HSTS, frame blocking, MIME sniffing protection, and restrictive browser permissions ship in `netlify.toml`.
+- CSP, HSTS, frame blocking, MIME sniffing protection, and restrictive browser permissions are applied by `server.js` to every response.
 
 ## Run locally
 
-Requirements: Node.js 22.12 or newer and the Netlify CLI.
+Requirements: Node.js 22.12 or newer and PostgreSQL.
 
 ```bash
 npm ci
 npm test
+cp .env.example .env
 ```
 
-`npm start` serves a static UI preview at `http://localhost:3000`; Netlify Functions and database flows are intentionally unavailable there.
-
-For the full stack, create or link a Netlify site with Netlify Database, then set `SELLER_PASSWORD_HASH` to a scrypt hash. Generate a development hash without storing the plaintext:
+Set `DATABASE_URL` in `.env` to your local PostgreSQL database and `SELLER_PASSWORD_HASH` to a scrypt hash. Generate a development hash:
 
 ```bash
-node -e "import('./netlify/functions/seller-auth.mjs').then(async m => console.log(await m.createPasswordHash(process.argv[1])))" "choose-a-local-password"
-npx netlify env:set SELLER_PASSWORD_HASH "paste-the-generated-hash"
-npx netlify database migrations apply
-npx netlify dev --no-open
+node -e "import('./functions/seller-auth.mjs').then(async m => console.log(await m.createPasswordHash(process.argv[1])))" "choose-a-local-password"
+node --env-file=.env migrate.mjs
 ```
 
-Do not commit `.env`, credentials, cookies, tokens, or production database values. See `.env.example` for the only application-owned environment variable.
+For a fresh local database only, seed the synthetic catalogue and seller. This command resets application data; do not run it against production:
+
+```bash
+node --env-file=.env --input-type=module -e "import {getDatabase} from './database.mjs'; import {createPostgresRepository} from './functions/_shared/postgres-repository.mjs'; import {resetDemoData} from './persistence.js'; const db=getDatabase(); await resetDemoData(createPostgresRepository(db),process.env.SELLER_PASSWORD_HASH); await db.pool.end();"
+node --env-file=.env server.js
+```
+
+The complete UI and APIs run at `http://localhost:3000`. `npm start` and `npm run migrate` also work with environment variables supplied by your shell or hosting platform. Do not commit `.env`, credentials, cookies, tokens, or production database values.
+
+## Railway deployment
+
+The production Railway project is [autoshop-webmcp](https://railway.com/project/310996d3-3221-415c-9f3b-2c345c69315b). Its app service deploys `main` from this repository using Railpack. A separate `Postgres` service stores data on a persistent volume.
+
+| Setting | Value |
+|---|---|
+| Start command | `npm start` |
+| Pre-deploy command | `npm run migrate` |
+| Health check | `/healthz` (checks PostgreSQL connectivity) |
+| Database variable | `DATABASE_URL=${{Postgres.DATABASE_URL}}` |
+| Public origin | `APP_ORIGIN=https://autoshop-webmcp-production.up.railway.app` |
+| Runtime | `NODE_ENV=production`, `PORT=8080` |
+| Seller credential | `SELLER_PASSWORD_HASH` copied from the prior production configuration |
+
+`migrate.mjs` applies ordered SQL migrations once, records them in `autoshop_migrations`, and runs under a transaction and advisory lock. Deployments never reset or reseed production data.
+
+The October 2026 migration preserved all 21 source records across ten application tables, including the existing order, receipt, approvals, inventory, mandate, carts, and seller credential. Every imported table was verified against its source checksum; `autoshop_data_imports` retains that audit. The temporary export route and import credential were removed after cutover. The former Netlify URL redirects to Railway.
 
 ## Architecture
 
@@ -77,14 +99,14 @@ ChatGPT in-app Browser / WebMCP Chrome
      /buyer              /seller
   3 scoped tools      authenticated 4 tools
         └─────────┬─────────┘
-             Netlify Functions
+             Node HTTP server
         validation · auth · policy
                   │
-       Netlify Database (Postgres)
+       Railway Postgres + volume
  orders · inventory · approvals · receipts
 ```
 
-The UI is framework-free HTML, CSS, and JavaScript. Server logic is implemented as Netlify Functions backed by ordered SQL migrations. Tests use Node's built-in test runner and in-memory repositories to exercise contracts, authorization, rollback, idempotency, and lifecycle behavior.
+The UI is framework-free HTML, CSS, and JavaScript. Request handlers in `functions/` use standard Web Requests and Responses; `server.js` routes them alongside static pages. The `pg` driver connects to PostgreSQL, and ordered SQL migrations live in `migrations/`. Tests use Node's built-in test runner and in-memory repositories to exercise contracts, authorization, rollback, idempotency, lifecycle behavior, and HTTP routing.
 
 ## Deliberate limits
 

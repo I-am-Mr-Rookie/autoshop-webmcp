@@ -4,9 +4,9 @@ import test from 'node:test';
 
 test('production configuration freezes security headers, generated-state ignores, and migration order', async () => {
   const [config, ignore, migrations] = await Promise.all([
-    readFile(new URL('../netlify.toml', import.meta.url), 'utf8'),
+    readFile(new URL('../server.js', import.meta.url), 'utf8'),
     readFile(new URL('../.gitignore', import.meta.url), 'utf8'),
-    readdir(new URL('../netlify/database/migrations/', import.meta.url))
+    readdir(new URL('../migrations/', import.meta.url))
   ]);
 
   for (const header of [

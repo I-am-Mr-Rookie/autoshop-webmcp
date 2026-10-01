@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { createApprovalHandler, hashApprovalToken } from '../netlify/functions/seller-approval.mjs';
-import { createCommitHandler } from '../netlify/functions/seller-commit.mjs';
+import { createApprovalHandler, hashApprovalToken } from '../functions/seller-approval.mjs';
+import { createCommitHandler } from '../functions/seller-commit.mjs';
 import { COMMIT_ACTION_TOOL, getSellerAuthorization, requestSellerApproval } from '../public/app.js';
 
 const sellerToken = 'a'.repeat(64);
@@ -111,8 +111,8 @@ test('commit rejects malformed, forged, expired, stale, and conflicting work saf
 });
 
 test('repository and migration enforce current single-use approval before atomic commit', async () => {
-  const repository = await readFile(new URL('../netlify/functions/_shared/postgres-repository.mjs', import.meta.url), 'utf8');
-  const migration = await readFile(new URL('../netlify/database/migrations/009_human-approval/migration.sql', import.meta.url), 'utf8');
+  const repository = await readFile(new URL('../functions/_shared/postgres-repository.mjs', import.meta.url), 'utf8');
+  const migration = await readFile(new URL('../migrations/009_human-approval/migration.sql', import.meta.url), 'utf8');
   const approve = repository.slice(repository.indexOf('async approveAction'), repository.indexOf('async commitAction'));
   const commit = repository.slice(repository.indexOf('async commitAction'));
 

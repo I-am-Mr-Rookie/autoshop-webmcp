@@ -1,8 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createAppServer, securityHeaders } from '../server.js';
-import { createAcceptHandler, config } from '../netlify/functions/seller-accept.mjs';
-import { createExportHandler, fingerprint } from '../netlify/functions/migration-export.mjs';
+import { createAcceptHandler, config } from '../functions/seller-accept.mjs';
 
 test('Railway HTTP adapter preserves HTTPS origin, cookies, authorization, and security headers', async t => {
   const origin = 'https://autoshop.example';
@@ -36,15 +35,4 @@ test('Railway HTTP adapter preserves HTTPS origin, cookies, authorization, and s
   assert.equal((await fetch(base + config.path, { method: 'POST', body: 'x'.repeat(65537) })).status, 413);
   for (const path of ['/', '/buyer', '/seller', '/app.js', '/healthz']) assert.equal((await fetch(base + path)).status, 200);
   for (const path of ['/%2e%2e%2fpackage.json', '/%2f..%2fpackage.json', '/_redirects']) assert.equal((await fetch(base + path)).status, 404);
-});
-
-test('migration snapshot requires authentication and canonical hashes preserve timestamps', async () => {
-  let accessed = false;
-  const handler = createExportHandler(() => { accessed = true; }, 'private-test-token');
-  for (const headers of [{}, { authorization: 'Bearer wrong' }]) {
-    assert.equal((await handler(new Request('https://example.test/api/migration-export', { headers }))).status, 404);
-  }
-  assert.equal(accessed, false);
-  const records = [{ id: 'order-1', issued_at: new Date('2026-01-01T00:00:00Z'), body: { b: 2, a: 1 } }];
-  assert.equal(fingerprint(records), fingerprint(JSON.parse(JSON.stringify(records))));
 });

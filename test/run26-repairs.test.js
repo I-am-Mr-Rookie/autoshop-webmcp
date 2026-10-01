@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
-import { createPostgresRepository } from '../netlify/functions/_shared/postgres-repository.mjs';
-import { createHandler as createResetHandler } from '../netlify/functions/demo-data.mjs';
+import { createPostgresRepository } from '../functions/_shared/postgres-repository.mjs';
+import { createHandler as createResetHandler } from '../functions/demo-data.mjs';
 import { registerRoleTools } from '../public/app.js';
 
 const sellerToken = 'a'.repeat(64);
@@ -51,8 +51,6 @@ test('root registers no tools and serves the script-free public homepage', async
   await registerRoleTools({ registerTool: async tool => registrations.push(tool.name) }, '/', () => {});
   assert.deepEqual(registrations, []);
 
-  const redirects = await readFile(new URL('../public/_redirects', import.meta.url), 'utf8');
-  assert.match(redirects, /^\/ \/home\.html 200!/m);
   const home = await readFile(new URL('../public/home.html', import.meta.url), 'utf8');
   assert.doesNotMatch(home, /<script/i);
   assert.match(home, /href="\/buyer"/);
@@ -104,13 +102,13 @@ test('a failed stock update rolls back without creating a receipt', async () => 
 });
 
 test('migration 010 detaches durable orders from expiring buyer sessions', async () => {
-  const migration = await readFile(new URL('../netlify/database/migrations/010_order-retention/migration.sql', import.meta.url), 'utf8').catch(() => '');
+  const migration = await readFile(new URL('../migrations/010_order-retention/migration.sql', import.meta.url), 'utf8').catch(() => '');
   assert.match(migration, /ALTER COLUMN buyer_session_id DROP NOT NULL/i);
   assert.match(migration, /REFERENCES buyer_sessions\(id\) ON DELETE SET NULL/i);
 });
 
 test('provider logs use constant messages without caught error details', async () => {
-  const directory = new URL('../netlify/functions/', import.meta.url);
+  const directory = new URL('../functions/', import.meta.url);
   const files = (await readdir(directory)).filter(name => name.endsWith('.mjs'));
   const source = (await Promise.all(files.map(name => readFile(new URL(name, directory), 'utf8')))).join('\n');
   assert.doesNotMatch(source, /console\.error\([^\n]*(?:caught|error)\.message/);

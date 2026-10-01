@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { createPostgresRepository, isOrderEligible } from '../netlify/functions/_shared/postgres-repository.mjs';
-import { hashSessionToken } from '../netlify/functions/seller-auth.mjs';
+import { createPostgresRepository, isOrderEligible } from '../functions/_shared/postgres-repository.mjs';
+import { hashSessionToken } from '../functions/seller-auth.mjs';
 import * as app from '../public/app.js';
 
-const acceptModule = await import('../netlify/functions/seller-accept.mjs').catch(() => ({}));
+const acceptModule = await import('../functions/seller-accept.mjs').catch(() => ({}));
 const rawSession = 'a'.repeat(64);
 const now = new Date('2026-09-02T12:00:00.000Z');
 const input = { order_id: 'order_demo', quantity: 3, idempotency_key: 'accept-request-1' };
@@ -112,14 +112,14 @@ test('permits quantities three and five only while minimum stock remains', () =>
 test('repository exposes one transactional acceptance path and receipts stay immutable', async () => {
   const repository = createPostgresRepository({ pool: {} });
   assert.equal(typeof repository.acceptOrder, 'function');
-  const source = await readFile(new URL('../netlify/functions/_shared/postgres-repository.mjs', import.meta.url), 'utf8');
+  const source = await readFile(new URL('../functions/_shared/postgres-repository.mjs', import.meta.url), 'utf8');
   assert.match(source, /BEGIN[\s\S]+FOR UPDATE[\s\S]+UPDATE products[\s\S]+INSERT INTO receipts[\s\S]+COMMIT/);
   assert.match(source, /decision_path: 'mandate'[\s\S]+mandate_version: mandate\.mandate_version/);
   assert.match(source, /replay\.order_id !== orderId[\s\S]+replay\.quantity !== quantity/);
   assert.match(source, /status IN \('requested', 'eligible'\)[\s\S]+pending_actions SET state = 'committed'/);
   assert.doesNotMatch(source, /UPDATE receipts/);
 
-  const migration = await readFile(new URL('../netlify/database/migrations/006_receipt-retention/migration.sql', import.meta.url), 'utf8').catch(() => '');
+  const migration = await readFile(new URL('../migrations/006_receipt-retention/migration.sql', import.meta.url), 'utf8').catch(() => '');
   assert.match(migration, /FOREIGN KEY \(order_id\) REFERENCES orders\(id\) ON DELETE CASCADE/);
 });
 

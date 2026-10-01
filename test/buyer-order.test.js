@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { createOrderHandler } from '../netlify/functions/buyer-order.mjs';
-import { hashConfirmationToken } from '../netlify/functions/buyer-confirm.mjs';
-import { hashSessionToken } from '../netlify/functions/buyer.mjs';
-import { createPostgresRepository } from '../netlify/functions/_shared/postgres-repository.mjs';
+import { createOrderHandler } from '../functions/buyer-order.mjs';
+import { hashConfirmationToken } from '../functions/buyer-confirm.mjs';
+import { hashSessionToken } from '../functions/buyer.mjs';
+import { createPostgresRepository } from '../functions/_shared/postgres-repository.mjs';
 
 const rawSession = 'a'.repeat(64);
 const rawConfirmation = 'b'.repeat(64);
@@ -136,8 +136,8 @@ test('rejects malformed, unauthorized, expired, and stale submissions', async ()
 });
 
 test('closes submitted carts without cascading durable orders from expired buyer sessions', async () => {
-  const repositorySource = await readFile(new URL('../netlify/functions/_shared/postgres-repository.mjs', import.meta.url), 'utf8');
-  const migration = await readFile(new URL('../netlify/database/migrations/010_order-retention/migration.sql', import.meta.url), 'utf8').catch(() => '');
+  const repositorySource = await readFile(new URL('../functions/_shared/postgres-repository.mjs', import.meta.url), 'utf8');
+  const migration = await readFile(new URL('../migrations/010_order-retention/migration.sql', import.meta.url), 'utf8').catch(() => '');
 
   assert.match(repositorySource, /FROM carts WHERE buyer_session_id = \$1 AND status = 'open' FOR UPDATE/);
   assert.match(migration, /FOREIGN KEY \(buyer_session_id\) REFERENCES buyer_sessions\(id\) ON DELETE SET NULL/);

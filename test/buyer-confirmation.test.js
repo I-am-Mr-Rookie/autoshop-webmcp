@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { createConfirmationHandler, hashConfirmationToken } from '../netlify/functions/buyer-confirm.mjs';
+import { createConfirmationHandler, hashConfirmationToken } from '../functions/buyer-confirm.mjs';
 import { requestBuyerConfirmation } from '../public/app.js';
 
 const memoryRepository = (sessionId = 'session-hash') => {

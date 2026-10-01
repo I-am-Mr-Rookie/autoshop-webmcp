@@ -9,11 +9,9 @@
   "scripts": {
     "start": "node server.js",
     "test": "node --test",
-    "migrate": "node migrate.mjs",
-    "import:netlify": "node import-netlify.mjs"
+    "migrate": "node migrate.mjs"
   },
   "dependencies": {
-    "@netlify/database": "^2.0.1",
     "pg": "^8.23.1"
   }
 }

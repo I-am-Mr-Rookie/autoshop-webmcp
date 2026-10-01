@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createSeedRecords, resetDemoData } from '../persistence.js';
-import { createHandler } from '../netlify/functions/demo-data.mjs';
+import { createHandler } from '../functions/demo-data.mjs';
 
 const sellerPasswordHash = `scrypt$${'00'.repeat(16)}$${'00'.repeat(64)}`;
 
