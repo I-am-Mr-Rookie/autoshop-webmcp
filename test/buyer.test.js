@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHandler, hashSessionToken } from '../functions/buyer.mjs';
+import { createPostgresRepository } from '../functions/_shared/postgres-repository.mjs';
 
 const products = [
   { id: 'cpu-1', name: 'Ryzen 5 7600', price_cents: 18900, stock: 10 },
@@ -124,4 +125,11 @@ test('rejects malformed catalogue and cart input without mutation', async () => 
     error: { code: 'VALIDATION', message: 'Input does not match the buyer API contract.' }
   });
   assert.equal(repository.sessions.size, 0);
+});
+
+test('product search treats LIKE wildcards in the query literally', async () => {
+  let params;
+  const repository = createPostgresRepository({ pool: { query: async (_text, values) => { params = values; return { rows: [] }; } } });
+  await repository.listProducts('50%_off\\', 8);
+  assert.deepEqual(params, ['%50\\%\\_off\\\\%', 8]);
 });

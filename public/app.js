@@ -354,6 +354,8 @@ async function setupBuyerConfirmation() {
   let cartVersion;
   let modeInitialized = false;
   let catalogue = [];
+  // Cart rows can reference products hidden by the current search, so keep every product seen.
+  const knownProducts = new Map();
   let authorizationTimer;
 
   const money = cents => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
@@ -389,10 +391,10 @@ async function setupBuyerConfirmation() {
       add.disabled = product.stock === 0;
       return card;
     }) : [Object.assign(document.createElement('p'), { textContent: 'No matching parts. Try a shorter search.' })]));
-    const byId = new Map(catalogue.map(product => [product.id, product]));
+    for (const product of catalogue) knownProducts.set(product.id, product);
     cartList.replaceChildren(...(state.cart.items.length ? state.cart.items.map(item => {
       const row = document.createElement('li');
-      const product = byId.get(item.product_id);
+      const product = knownProducts.get(item.product_id);
       row.innerHTML = `<span class="cart-copy"><strong></strong><small></small></span><span class="cart-controls"><button type="button" aria-label="Decrease quantity">−</button><b></b><button type="button" aria-label="Increase quantity">+</button><button type="button" class="remove">Remove</button></span>`;
       row.querySelector('strong').textContent = product?.name ?? item.product_id;
       row.querySelector('small').textContent = money((product?.price_cents ?? 0) * item.quantity);
@@ -486,6 +488,7 @@ async function setupBuyerConfirmation() {
       renderOrder(result.order);
       confirmationStatus.textContent = 'Authorization consumed. The seller can now review this order.';
       clearAuthorization();
+      await load();
     } catch (error) {
       orderStatus.textContent = error.message;
       submit.disabled = false;
@@ -494,7 +497,11 @@ async function setupBuyerConfirmation() {
 
   document.addEventListener('autoshop:buyer-change', () => { clearAuthorization(); load(); });
   document.addEventListener('autoshop:order-change', () => {
-    readBuyerOrder(fetch, buyerAuthorization?.order_id)
+    // submit_order consumed the authorization and emptied the server cart.
+    clearAuthorization();
+    confirmationStatus.textContent = 'Authorization consumed. The seller can now review this order.';
+    load();
+    readBuyerOrder(fetch)
       .then(result => { renderOrder(result.order); })
       .catch(error => { orderStatus.textContent = error.message; });
   });
@@ -801,7 +808,7 @@ async function setupSellerAuthentication() {
 
   logout.addEventListener('click', async () => {
     logout.disabled = true;
-    try { await fetch('/api/seller/auth', { method: 'DELETE' }); } finally {
+    try { await fetch('/api/seller/auth', { method: 'DELETE' }); } catch {} finally {
       deactivate('Logged out · seller tools removed');
       logout.disabled = false;
     }

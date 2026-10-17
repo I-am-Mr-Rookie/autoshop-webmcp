@@ -29,8 +29,9 @@ export const createAppServer = (options = {}) => createServer(async (req, res) =
     res.end(JSON.stringify({ ok: false, error: { code: status === 503 ? 'UNAVAILABLE' : 'VALIDATION', message } }));
   };
   try {
-    const origin = options.origin ?? process.env.APP_ORIGIN
-      ?? (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+    // `||` so an empty APP_ORIGIN= line falls back instead of breaking every request.
+    const origin = options.origin || process.env.APP_ORIGIN
+      || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
         : `${req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http'}://${req.headers.host}`);
     if (!req.url.startsWith('/') || req.url.startsWith('//')) return send(400, 'Invalid request URL.');
     const url = new URL(req.url, origin);
@@ -72,7 +73,7 @@ export const createAppServer = (options = {}) => createServer(async (req, res) =
     const path = decodeURIComponent(url.pathname);
     const file = path === '/' ? 'home.html' : ['/buyer', '/seller'].includes(path) ? 'index.html' : path.replace(/^\/+/, '');
     const fullPath = resolve(root, file);
-    if (!fullPath.startsWith(root.endsWith(sep) ? root : root + sep) || path.includes('\0') || path === '/_redirects') return send(404, 'File not found.');
+    if (!fullPath.startsWith(root.endsWith(sep) ? root : root + sep) || path.includes('\0')) return send(404, 'File not found.');
     try {
       const body = await readFile(fullPath);
       res.writeHead(200, { 'Content-Type': types[extname(file)] ?? 'application/octet-stream' });

@@ -81,6 +81,8 @@ export const createPostgresRepository = db => ({
     const client = await db.pool.connect();
     try {
       await client.query('BEGIN');
+      // Expired sessions are otherwise only removed when their own cookie returns; orders survive via ON DELETE SET NULL.
+      await client.query('DELETE FROM buyer_sessions WHERE expires_at <= NOW()');
       await client.query('INSERT INTO buyer_sessions (id, expires_at, version) VALUES ($1, $2, 1)', [id, expiresAt]);
       await client.query('INSERT INTO carts (id, buyer_session_id, version) VALUES ($1, $1, 1)', [id]);
       await client.query('COMMIT');
@@ -134,6 +136,7 @@ export const createPostgresRepository = db => ({
   },
 
   async createSellerSession(id, tokenHash, expiresAt) {
+    await db.pool.query('DELETE FROM seller_sessions WHERE expires_at <= NOW()');
     await db.pool.query(`
       WITH seller AS (
         UPDATE seller_users SET failed_login_count = 0, locked_until = NULL, version = version + 1
@@ -283,7 +286,7 @@ export const createPostgresRepository = db => ({
     const { rows } = await db.pool.query(`
       SELECT id, name, price_cents, stock FROM products
       WHERE name ILIKE $1 ORDER BY id LIMIT $2
-    `, [`%${query}%`, limit]);
+    `, [`%${query.replace(/[\\%_]/g, '\\$&')}%`, limit]);
     return rows;
   },
 
