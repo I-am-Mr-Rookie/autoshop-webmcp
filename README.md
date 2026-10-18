@@ -106,7 +106,7 @@ ChatGPT in-app Browser / WebMCP Chrome
  orders · inventory · approvals · receipts
 ```
 
-The UI is framework-free HTML, CSS, and JavaScript. Request handlers in `functions/` use standard Web Requests and Responses; `server.js` routes them alongside static pages. The `pg` driver connects to PostgreSQL, and ordered SQL migrations live in `migrations/`. Tests use Node's built-in test runner and in-memory repositories to exercise contracts, authorization, rollback, idempotency, lifecycle behavior, and HTTP routing.
+The UI is framework-free HTML, CSS, and JavaScript. Request handlers in `functions/` use standard Web Requests and Responses; `server.js` routes them alongside static pages. The `pg` driver connects to PostgreSQL, and ordered SQL migrations live in `migrations/`. Tests use Node's built-in test runner and in-memory repositories to exercise contracts, authorization, rollback, idempotency, lifecycle behavior, and HTTP routing; `test/postgres-repository.test.js` also runs the real migrations and repository SQL on in-process PostgreSQL (PGlite, a dev dependency), so `npm test` needs no database server.
 
 ## Deliberate limits
 

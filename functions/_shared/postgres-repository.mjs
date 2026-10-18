@@ -1,5 +1,8 @@
 import { randomUUID } from 'node:crypto';
 
+// A failed ROLLBACK (e.g. dropped connection) must not hide the original error; pg-pool discards dead clients.
+const rollback = client => client.query('ROLLBACK').catch(() => {});
+
 const cartResult = async (client, sessionId) => {
   const { rows: [cart] } = await client.query(`
     SELECT c.items, c.version, COALESCE((
@@ -70,7 +73,7 @@ export const createPostgresRepository = db => ({
       );
       await client.query('COMMIT');
     } catch (error) {
-      await client.query('ROLLBACK');
+      await rollback(client);
       throw error;
     } finally {
       client.release();
@@ -87,7 +90,7 @@ export const createPostgresRepository = db => ({
       await client.query('INSERT INTO carts (id, buyer_session_id, version) VALUES ($1, $1, 1)', [id]);
       await client.query('COMMIT');
     } catch (error) {
-      await client.query('ROLLBACK');
+      await rollback(client);
       throw error;
     } finally {
       client.release();
@@ -128,7 +131,7 @@ export const createPostgresRepository = db => ({
       await client.query('COMMIT');
       return result;
     } catch (error) {
-      await client.query('ROLLBACK');
+      await rollback(client);
       throw error;
     } finally {
       client.release();
@@ -275,7 +278,7 @@ export const createPostgresRepository = db => ({
       await client.query('COMMIT');
       return { mandate, re_evaluated: actions.length, eligible };
     } catch (error) {
-      await client.query('ROLLBACK');
+      await rollback(client);
       throw error;
     } finally {
       client.release();
@@ -330,7 +333,7 @@ export const createPostgresRepository = db => ({
       await client.query('COMMIT');
       return result;
     } catch (error) {
-      await client.query('ROLLBACK');
+      await rollback(client);
       throw error;
     } finally {
       client.release();
@@ -370,7 +373,7 @@ export const createPostgresRepository = db => ({
       await client.query('COMMIT');
       return { mode, cart_version: cart.version, expires_at: expiresAt.toISOString() };
     } catch (error) {
-      await client.query('ROLLBACK');
+      await rollback(client);
       throw error;
     } finally {
       client.release();
@@ -456,7 +459,7 @@ export const createPostgresRepository = db => ({
       await client.query('COMMIT');
       return { order, replayed: false };
     } catch (error) {
-      await client.query('ROLLBACK');
+      await rollback(client);
       throw error;
     } finally {
       client.release();
@@ -547,7 +550,7 @@ export const createPostgresRepository = db => ({
         }
       };
     } catch (error) {
-      await client.query('ROLLBACK');
+      await rollback(client);
       if (error?.code === '23505') return { error: 'CONFLICT' };
       throw error;
     } finally {
@@ -691,7 +694,7 @@ export const createPostgresRepository = db => ({
       await client.query('COMMIT');
       return { receipt: receiptResult(receipt), replayed: false };
     } catch (error) {
-      await client.query('ROLLBACK');
+      await rollback(client);
       if (error?.code === '23505') return { error: 'CONFLICT' };
       throw error;
     } finally {
@@ -881,7 +884,7 @@ export const createPostgresRepository = db => ({
       await client.query('COMMIT');
       return { receipt: receiptResult(receipt), replayed: false };
     } catch (error) {
-      await client.query('ROLLBACK');
+      await rollback(client);
       if (error?.code === '23505') return { error: 'CONFLICT' };
       throw error;
     } finally {
