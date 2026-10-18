@@ -12,6 +12,7 @@
     "migrate": "node migrate.mjs"
   },
   "dependencies": {
+    "@clerk/backend": "^3.25.0",
     "pg": "^8.23.1"
   },
   "devDependencies": {

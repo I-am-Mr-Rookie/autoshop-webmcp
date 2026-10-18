@@ -1,3 +1,5 @@
+import { authenticatedFetch as fetch, ensureGoogleSession, signOutGoogle } from './auth.js';
+
 export const MANDATE = Object.freeze({
   mandate_version: 1,
   currency: 'USD',
@@ -649,7 +651,9 @@ async function setupSellerAuthentication() {
   };
 
   try {
-    const response = await fetch('/api/seller/auth');
+    const response = await fetch('/api/seller/auth', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}'
+    });
     if (response.ok) await activate(await response.json());
     else deactivate('Sign in required · seller tools unavailable');
   } catch {
@@ -665,7 +669,7 @@ async function setupSellerAuthentication() {
       const response = await fetch('/api/seller/auth', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(Object.fromEntries(new FormData(form)))
+        body: '{}'
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error?.message ?? 'Seller sign-in failed.');
@@ -813,7 +817,7 @@ async function setupSellerAuthentication() {
 
   logout.addEventListener('click', async () => {
     logout.disabled = true;
-    try { await fetch('/api/seller/auth', { method: 'DELETE' }); } catch {} finally {
+    try { await fetch('/api/seller/auth', { method: 'DELETE' }); await signOutGoogle(); } catch {} finally {
       deactivate('Logged out · seller tools removed');
       logout.disabled = false;
     }
@@ -822,7 +826,7 @@ async function setupSellerAuthentication() {
   document.addEventListener('autoshop:seller-change', loadOrders);
 }
 
-if (typeof document !== 'undefined') {
+if (typeof document !== 'undefined' && await ensureGoogleSession()) {
   addEventListener('pagehide', () => {
     buyerAuthorization = undefined;
     sellerAuthorization = undefined;

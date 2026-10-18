@@ -7,6 +7,7 @@
   <title>AutoShop</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%231d2b34'/%3E%3Cpath d='M16 46 28 18h8l12 28h-8l-2-6H26l-2 6zm13-13h6l-3-9z' fill='%236ee7b7'/%3E%3C/svg%3E">
   <style>
+    body.auth-pending main { display: none; }
     /* ------------------------------------------------------------------
        AutoShop · precision parts workbench meets editorial control room
        Tokens
@@ -367,7 +368,7 @@
     }
   </style>
 </head>
-<body>
+<body class="auth-pending">
   <nav class="topbar" aria-label="Portal navigation">
     <div class="wrap">
       <a class="brand" href="/"><strong>AutoShop</strong><span>Synthetic parts · bounded authority</span></a>
@@ -375,6 +376,15 @@
     </div>
   </nav>
 
+  <section id="auth-gate" class="wrap" style="padding-block:64px;max-width:640px" aria-labelledby="auth-title">
+    <p class="eyebrow">Your own demo shop</p>
+    <h1 id="auth-title">Try AutoShop with Google</h1>
+    <p id="auth-status" role="status">Loading secure sign-in…</p>
+    <button id="google-sign-in" type="button" disabled>Continue with Google</button>
+    <div id="clerk-auth-component"></div>
+    <p class="hint">Synthetic inventory only. No real purchases, payments, or shipping.</p>
+  </section>
+  <div id="demo-account" class="wrap" hidden style="padding-block:12px">Your isolated demo shop · buyer and seller portals share only your data. <button id="demo-sign-out" type="button">Sign out</button></div>
   <main>
     <section data-role-view="seller">
       <header class="portal-header">
@@ -407,8 +417,7 @@
         <form class="seller-login panel" id="seller-login" hidden>
           <div class="panel-head"><div><h2>Seller sign in</h2><p class="hint">The demo credential is supplied privately. It is never stored in this page or repository.</p></div></div>
           <div class="panel-body">
-            <label class="field">Username<input name="username" type="text" autocomplete="username" maxlength="64" required></label>
-            <label class="field">Password<input name="password" type="password" autocomplete="current-password" minlength="8" maxlength="128" required></label>
+            <p>You are signed in with Google. Open or refresh your private seller session.</p>
             <button type="submit">Sign in to seller portal</button>
             <output class="confirmation-status" id="seller-login-status" aria-live="polite"></output>
           </div>

@@ -1,124 +1,67 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import {
-  createHandler,
-  createPasswordHash,
-  hashSessionToken
-} from '../functions/seller-auth.mjs';
-import { createSeedRecords } from '../persistence.js';
+import { createHandler, hashSessionToken } from '../functions/seller-auth.mjs';
+import { withShop } from '../shop-context.mjs';
 
-const rawSession = 'a'.repeat(64);
-const validPassword = ['unit', 'test', 'password', 'only'].join('-');
-
-const memoryRepository = passwordHash => {
-  const seller = {
-    id: 'seller-1', username: 'seller', password_hash: passwordHash,
-    status: 'active', failed_login_count: 0, locked_until: null
+const identity = { userId: 'user_testGoogle', sessionId: 'sess_test' };
+const now = new Date('2026-10-18T12:00:00Z');
+const token = 'a'.repeat(64);
+const request = (method, body, cookie) => new Request('https://example.test/api/seller/auth', {
+  method, headers: { origin: 'https://example.test', 'content-type': 'application/json', ...(cookie ? { cookie } : {}) },
+  ...(body === undefined ? {} : { body: JSON.stringify(body) })
+});
+const setup = () => {
+  const sessions = new Map();
+  const repository = {
+    findSeller: async () => ({ id: 'seller-1', username: 'seller', status: 'active' }),
+    createSellerSession: async (_id, hash, expires_at) => { sessions.set(hash, { username: 'seller', expires_at }); },
+    findSellerSession: async (hash, at) => { const session = sessions.get(hash); return session && new Date(session.expires_at) > at ? session : null; },
+    deleteSellerSession: async hash => { sessions.delete(hash); }
   };
-  return {
-    seller,
-    async findSeller(username) { return username === seller.username ? { ...seller } : null; },
-    async recordSellerLoginFailure(_id, now, limit, lockedUntil) {
-      if (seller.locked_until && new Date(seller.locked_until) <= now) seller.failed_login_count = 0;
-      seller.failed_login_count += 1;
-      if (seller.failed_login_count >= limit) seller.locked_until = lockedUntil.toISOString();
-      return { locked_until: seller.locked_until };
-    },
-    async createSellerSession(_id, tokenHash, expiresAt) {
-      seller.session_token_hash = tokenHash;
-      seller.session_expires_at = expiresAt.toISOString();
-      seller.failed_login_count = 0;
-      seller.locked_until = null;
-    },
-    async findSellerSession(tokenHash, now) {
-      return tokenHash === seller.session_token_hash && new Date(seller.session_expires_at) > now
-        ? { username: seller.username, expires_at: seller.session_expires_at }
-        : null;
-    },
-    async deleteSellerSession(tokenHash) {
-      if (tokenHash === seller.session_token_hash) {
-        seller.session_token_hash = null;
-        seller.session_expires_at = null;
-      }
-    }
-  };
+  return { sessions, handler: createHandler(async () => repository, { now: () => now, createToken: () => token }) };
 };
 
-const loginRequest = password => new Request('https://example.test/api/seller/auth', {
-  method: 'POST',
-  headers: { 'content-type': 'application/json' },
-  body: JSON.stringify({ username: 'seller', password })
+test('only verified Clerk request context can mint a seller session; old passwords cannot log in', async () => {
+  const { handler, sessions } = setup();
+  assert.equal((await handler(request('POST', {}))).status, 401);
+  const oldLogin = await withShop(identity, () => handler(request('POST', { username: 'seller', password: 'not-a-credential' })));
+  assert.equal(oldLogin.status, 400);
+  assert.equal(sessions.size, 0);
+  assert.equal((await withShop(identity, () => handler(request('POST', [])))).status, 400);
 });
 
-test('logs in with a hashed password and supports cookie-bound session logout', async () => {
-  const passwordHash = await createPasswordHash(validPassword, '01'.repeat(16));
-  const repository = memoryRepository(passwordHash);
-  const now = new Date('2026-09-02T12:00:00.000Z');
-  const handler = createHandler(async () => repository, {
-    now: () => now,
-    createToken: () => rawSession
+test('Google-authenticated shop receives a hashed HttpOnly session and can log out', async () => {
+  const { handler, sessions } = setup();
+  await withShop(identity, async () => {
+    const login = await handler(request('POST', {}));
+    assert.equal(login.status, 200);
+    assert.match(login.headers.get('set-cookie'), /^__Host-autoshop_seller=a{64}; Max-Age=28800; Path=\/; HttpOnly; Secure; SameSite=Strict$/);
+    assert.equal(sessions.has(hashSessionToken(token)), true);
+    const cookie = login.headers.get('set-cookie').split(';', 1)[0];
+    assert.equal((await handler(request('GET', undefined, cookie))).status, 200);
+    assert.equal((await handler(request('POST', {}, cookie))).status, 200);
+    assert.equal(sessions.size, 1);
+    const logout = await handler(request('DELETE', undefined, cookie));
+    assert.equal(logout.status, 200);
+    assert.match(logout.headers.get('set-cookie'), /Max-Age=0/);
+    assert.equal((await handler(request('GET', undefined, cookie))).status, 401);
   });
-
-  const login = await handler(loginRequest(validPassword));
-  assert.equal(login.status, 200);
-  assert.match(login.headers.get('set-cookie'), /^__Host-autoshop_seller=a{64}; Max-Age=28800; Path=\/; HttpOnly; Secure; SameSite=Strict$/);
-  assert.equal(repository.seller.session_token_hash, hashSessionToken(rawSession));
-  assert.equal(JSON.stringify(repository.seller).includes(rawSession), false);
-
-  const cookie = login.headers.get('set-cookie').split(';', 1)[0];
-  const session = await handler(new Request('https://example.test/api/seller/auth', { headers: { cookie } }));
-  assert.deepEqual(await session.json(), {
-    ok: true, username: 'seller', expires_at: '2026-09-02T20:00:00.000Z'
-  });
-
-  const logout = await handler(new Request('https://example.test/api/seller/auth', { method: 'DELETE', headers: { cookie } }));
-  assert.equal(logout.status, 200);
-  assert.match(logout.headers.get('set-cookie'), /^__Host-autoshop_seller=; Max-Age=0;/);
-  assert.equal((await handler(new Request('https://example.test/api/seller/auth', { headers: { cookie } }))).status, 401);
 });
 
-test('rejects malformed or wrong credentials and rate-limits the seeded account', async () => {
-  const passwordHash = await createPasswordHash(validPassword, '02'.repeat(16));
-  const repository = memoryRepository(passwordHash);
-  const handler = createHandler(async () => repository, {
-    now: () => new Date('2026-09-02T12:00:00.000Z'),
-    createToken: () => rawSession
-  });
-
-  const malformed = await handler(new Request('https://example.test/api/seller/auth', {
-    method: 'POST', body: JSON.stringify({ username: 'seller', password: 123, extra: true })
-  }));
-  assert.equal(malformed.status, 400);
-  assert.equal(repository.seller.failed_login_count, 0);
-
-  for (let attempt = 1; attempt <= 4; attempt += 1) {
-    const rejected = await handler(loginRequest('definitely wrong password'));
-    assert.equal(rejected.status, 401);
-    assert.equal((await rejected.json()).error.code, 'FORBIDDEN');
-  }
-  const limited = await handler(loginRequest('definitely wrong password'));
-  assert.equal(limited.status, 429);
-  assert.equal((await limited.json()).error.code, 'RATE_LIMITED');
-
-  const stillLimited = await handler(loginRequest(validPassword));
-  assert.equal(stillLimited.status, 429);
-  assert.equal(repository.seller.session_token_hash, undefined);
+test('session creation fails closed on a cross-origin request', async () => {
+  const { handler, sessions } = setup();
+  const result = await withShop(identity, () => handler(new Request('https://example.test/api/seller/auth', {
+    method: 'POST', headers: { origin: 'https://attacker.example' }, body: '{}'
+  })));
+  assert.equal(result.status, 403);
+  assert.equal(sessions.size, 0);
 });
 
-test('keeps the seller credential out of source while wiring persistence and accessible UI', async () => {
-  assert.throws(() => createSeedRecords(), /SELLER_PASSWORD_HASH/);
-  assert.throws(() => createSeedRecords('plaintext'), /SELLER_PASSWORD_HASH/);
-  const migration = await readFile(new URL('../migrations/004_seller-authentication/migration.sql', import.meta.url), 'utf8');
-  const repository = await readFile(new URL('../functions/_shared/postgres-repository.mjs', import.meta.url), 'utf8');
+test('seller UI has Google login and no manual credential fields or password environment setting', async () => {
   const html = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
-  const client = await readFile(new URL('../public/app.js', import.meta.url), 'utf8');
-
-  assert.match(migration, /session_token_hash TEXT/);
-  assert.match(migration, /failed_login_count INTEGER NOT NULL DEFAULT 0/);
-  assert.match(repository, /password_hash/);
-  assert.match(html, /id="seller-login"/);
-  assert.match(html, /autocomplete="current-password"/);
-  assert.match(client, /\/api\/seller\/auth/);
-  assert.doesNotMatch(`${migration}\n${repository}\n${html}\n${client}`, new RegExp(validPassword));
+  const env = await readFile(new URL('../.env.example', import.meta.url), 'utf8');
+  assert.match(html, /Continue with Google/);
+  assert.doesNotMatch(html, /name="(?:password|username)"/);
+  assert.doesNotMatch(env, /SELLER_PASSWORD_HASH/);
 });

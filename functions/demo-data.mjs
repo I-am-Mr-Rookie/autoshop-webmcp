@@ -30,8 +30,6 @@ export const createHandler = (getRepository, options = {}) => async request => {
   }
 };
 
-export default createHandler(async () => createPostgresRepository(getDatabase()), {
-  passwordHash: process.env.SELLER_PASSWORD_HASH
-});
+export default createHandler(async () => createPostgresRepository(getDatabase()));
 
 export const config = { path: '/api/demo-data/reset', method: ['POST'] };

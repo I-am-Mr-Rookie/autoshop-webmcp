@@ -1,7 +1,7 @@
 const PASSWORD_HASH = /^scrypt\$[a-f0-9]{32}\$[a-f0-9]{128}$/;
 
-export const createSeedRecords = passwordHash => {
-  if (!PASSWORD_HASH.test(passwordHash ?? '')) throw new Error('SELLER_PASSWORD_HASH must be a scrypt hash.');
+export const createSeedRecords = (passwordHash = null) => {
+  if (passwordHash !== null && !PASSWORD_HASH.test(passwordHash)) throw new Error('Legacy fixture password hash must be a scrypt hash.');
   return ({
   products: [
     { id: 'cpu-1', name: 'Ryzen 5 7600', priceCents: 18900, stock: 10, version: 1 },

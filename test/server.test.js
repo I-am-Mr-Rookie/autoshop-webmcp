@@ -15,7 +15,8 @@ test('Railway HTTP adapter preserves HTTPS origin, cookies, authorization, and s
       ['Set-Cookie', 'first=one; Secure; HttpOnly'], ['Set-Cookie', 'second=two; Secure; HttpOnly']
     ] })
   }]]);
-  const server = createAppServer({ origin, routes, healthcheck: async () => {} });
+  const server = createAppServer({ origin, routes, healthcheck: async () => {},
+    authenticate: async () => ({ userId: 'user_adaptertest', sessionId: 'sess_test' }), provisionShop: async () => {} });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   t.after(() => new Promise(resolve => server.close(resolve)));
   const base = `http://127.0.0.1:${server.address().port}`;

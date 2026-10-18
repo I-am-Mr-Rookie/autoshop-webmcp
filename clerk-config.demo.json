@@ -1,0 +1,6 @@
+{
+  "connection_oauth_google": { "enabled": true, "authenticatable": true, "show_account_selector_prompt": true },
+  "auth_password": { "enabled": false, "required": false },
+  "auth_email": { "used_for_sign_in": false, "sign_in_strategies": [] },
+  "paths": { "home": "/", "sign_in": "/sign-in", "sign_up": "/sign-up", "after_sign_out_all": "/" }
+}

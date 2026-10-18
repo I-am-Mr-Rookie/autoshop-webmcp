@@ -3,6 +3,9 @@ import { readFile } from 'node:fs/promises';
 import { extname, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getDatabase } from './database.mjs';
+import { authenticateGoogleSession, clerkPublicConfig } from './clerk-auth.mjs';
+import { withShop, currentShop } from './shop-context.mjs';
+import { provisionShop } from './shop-provision.mjs';
 
 const root = fileURLToPath(new URL('./public/', import.meta.url));
 const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml; charset=utf-8' };
@@ -24,6 +27,15 @@ const routes = new Map(modules.map(module => [module.config.path, module]));
 
 export const createAppServer = (options = {}) => createServer(async (req, res) => {
   for (const [name, value] of Object.entries(securityHeaders)) res.setHeader(name, value);
+  const clerk = clerkPublicConfig();
+  if (clerk) {
+    const fapi = `https://${clerk.domain}`;
+    res.setHeader('Content-Security-Policy', securityHeaders['Content-Security-Policy']
+      .replace("connect-src 'self'", `connect-src 'self' ${fapi} https://clerk-telemetry.com https://*.clerk-telemetry.com https://*.protect.clerk.com`)
+      .replace("img-src 'self' data:", "img-src 'self' data: https://img.clerk.com https://*.googleusercontent.com")
+      .replace("script-src 'self'", `script-src 'self' ${fapi} https://challenges.cloudflare.com https://*.protect.clerk.com`)
+      + `; frame-src 'self' ${fapi} https://challenges.cloudflare.com https://*.protect.clerk.com; worker-src 'self' blob:`);
+  }
   const send = (status, message) => {
     res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
     res.end(JSON.stringify({ ok: false, error: { code: status === 503 ? 'UNAVAILABLE' : 'VALIDATION', message } }));
@@ -40,6 +52,10 @@ export const createAppServer = (options = {}) => createServer(async (req, res) =
       await (options.healthcheck ?? (() => getDatabase().pool.query('SELECT 1')))();
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
       return res.end(req.method === 'HEAD' ? undefined : '{"ok":true}');
+    }
+    if (url.pathname === '/api/config' && req.method === 'GET') {
+      res.writeHead(clerk ? 200 : 503, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+      return res.end(JSON.stringify(clerk ? { ok: true, ...clerk } : { ok: false, error: { code: 'UNAVAILABLE', message: 'Google sign-in is not configured.' } }));
     }
     const route = (options.routes ?? routes).get(url.pathname);
     if (route) {
@@ -59,7 +75,19 @@ export const createAppServer = (options = {}) => createServer(async (req, res) =
         method: req.method, headers: req.headers,
         body: ['GET', 'HEAD'].includes(req.method) ? undefined : Buffer.concat(chunks)
       });
-      const response = await route.default(request);
+      if (!['GET', 'HEAD'].includes(req.method) && request.headers.get('origin') !== url.origin) {
+        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+        return res.end(JSON.stringify({ ok: false, error: { code: 'FORBIDDEN', message: 'Use the same-origin portal for this action.' } }));
+      }
+      const identity = await (options.authenticate ?? authenticateGoogleSession)(request);
+      if (!identity) {
+        res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+        return res.end(JSON.stringify({ ok: false, error: { code: 'FORBIDDEN', message: 'Continue with Google to open your isolated demo shop.' } }));
+      }
+      const response = await withShop(identity, async () => {
+        await (options.provisionShop ?? provisionShop)(currentShop().schema);
+        return route.default(request);
+      });
       for (const [name, value] of response.headers) {
         if (name !== 'set-cookie') res.setHeader(name, value);
       }
@@ -71,7 +99,7 @@ export const createAppServer = (options = {}) => createServer(async (req, res) =
     if (url.pathname.startsWith('/api/')) return send(404, 'API route not found.');
     if (!['GET', 'HEAD'].includes(req.method)) return send(405, 'Unsupported request method.');
     const path = decodeURIComponent(url.pathname);
-    const file = path === '/' ? 'home.html' : ['/buyer', '/seller'].includes(path) ? 'index.html' : path.replace(/^\/+/, '');
+    const file = path === '/' ? 'home.html' : ['/buyer', '/seller', '/sign-in', '/sign-up', '/sso-callback'].includes(path) ? 'index.html' : path.replace(/^\/+/, '');
     const fullPath = resolve(root, file);
     if (!fullPath.startsWith(root.endsWith(sep) ? root : root + sep) || path.includes('\0')) return send(404, 'File not found.');
     try {

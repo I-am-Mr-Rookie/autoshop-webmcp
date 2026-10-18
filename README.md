@@ -30,17 +30,18 @@ Seller tools register only after authentication and are removed on logout, expir
 
 Use ChatGPT's in-app Browser or a WebMCP-enabled Chrome build. Start in the seller control plane so the product and mandate are clear before generating its workload.
 
-1. Open the [seller control plane](https://autoshop-webmcp-production.up.railway.app/seller), sign in with the private judging credential, and verify that exactly four seller tools appear. Ask for the live mandate: its item cap is five.
+1. Open the [seller control plane](https://autoshop-webmcp-production.up.railway.app/seller), choose **Continue with Google**, and verify that exactly four seller tools appear. Ask for the live mandate: its item cap is five.
 2. Open the [buyer workload generator](https://autoshop-webmcp-production.up.railway.app/buyer). Verify that only three buyer tools are available and ask the agent to find DDR memory.
 3. Select **Auto**, then ask the agent to add six units of the 16 GB DDR5 RAM. Enter clearly synthetic buyer details, visibly confirm the exact cart, and ask the agent to submit the displayed order ID.
 4. Return to the seller control plane. Ask the agent to list orders and accept six units with a fresh idempotency key. The tool returns `APPROVAL_REQUIRED` without changing stock because the mandate allows five.
 5. Review that pending action in the page and check the explicit approval box. Ask the agent to call `commit_action` with the displayed action ID and a fresh idempotency key.
-6. Return to the buyer portal: the accepted status and receipt survive refresh. The seller can reset all synthetic state for the next run.
+6. Return to the buyer portal: the accepted status and receipt survive refresh. The seller can reset their own synthetic state for the next run; other Google accounts are unaffected.
 
 ## Safety properties
 
 - Buyer and seller state use separate secure, HttpOnly, SameSite cookies.
-- Seller passwords are stored only as scrypt hashes; login is rate-limited and timing-safe.
+- Clerk verifies Google sign-in. Every API call verifies the Clerk session and selects a shop schema derived server-side from the verified user ID.
+- Each Google account gets isolated inventory, carts, orders, mandates, approvals, receipts, and seller sessions. Reset affects only that account's shop.
 - One-time authorization tokens are random, hashed at rest, exact-action bound, expiring, and absent from WebMCP schemas.
 - Inventory mutation and receipt creation share one database transaction; idempotency keys make retries deterministic.
 - Product lookup and mandate checks are server-side; DOM text and buyer-authored fields do not grant authority.
@@ -56,19 +57,14 @@ npm test
 cp .env.example .env
 ```
 
-Set `DATABASE_URL` in `.env` to your local PostgreSQL database and `SELLER_PASSWORD_HASH` to a scrypt hash. Generate a development hash:
+Set `DATABASE_URL`, `CLERK_PUBLISHABLE_KEY`, and `CLERK_SECRET_KEY` in `.env`. Use a dedicated Clerk application with Google enabled and password sign-in disabled. The safe, non-secret settings are recorded in `clerk-config.demo.json`.
 
 ```bash
-node -e "import('./functions/seller-auth.mjs').then(async m => console.log(await m.createPasswordHash(process.argv[1])))" "choose-a-local-password"
 node --env-file=.env migrate.mjs
-```
-
-For a fresh local database only, seed the synthetic catalogue and seller. This command resets application data; do not run it against production:
-
-```bash
-node --env-file=.env --input-type=module -e "import {getDatabase} from './database.mjs'; import {createPostgresRepository} from './functions/_shared/postgres-repository.mjs'; import {resetDemoData} from './persistence.js'; const db=getDatabase(); await resetDemoData(createPostgresRepository(db),process.env.SELLER_PASSWORD_HASH); await db.pool.end();"
 node --env-file=.env server.js
 ```
+
+Open `http://localhost:3000/seller` and continue with Google. The first verified request creates and seeds **only that account's shop**. No seller password or manual seed/reset command is needed.
 
 The complete UI and APIs run at `http://localhost:3000`. `npm start` and `npm run migrate` also work with environment variables supplied by your shell or hosting platform. Do not commit `.env`, credentials, cookies, tokens, or production database values.
 
@@ -84,9 +80,9 @@ The production Railway project is [autoshop-webmcp](https://railway.com/project/
 | Database variable | `DATABASE_URL=${{Postgres.DATABASE_URL}}` |
 | Public origin | `APP_ORIGIN=https://autoshop-webmcp-production.up.railway.app` |
 | Runtime | `NODE_ENV=production`, `PORT=8080` |
-| Seller credential | `SELLER_PASSWORD_HASH` copied from the prior production configuration |
+| Authentication | `CLERK_PUBLISHABLE_KEY` and server-only `CLERK_SECRET_KEY` for the dedicated AutoShop app |
 
-`migrate.mjs` applies ordered SQL migrations once, records them in `autoshop_migrations`, and runs under a transaction and advisory lock. Deployments never reset or reseed production data.
+`migrate.mjs` applies ordered SQL migrations once, records them in `autoshop_migrations`, and runs under a transaction and advisory lock. Deployments never reset existing data. Each signed-in account's schema is migrated and seeded transactionally on its first request; later requests do not restore inventory. The pre-existing shared demo records are preserved but are not exposed through the new authenticated shop routes.
 
 The October 2026 migration preserved all 21 source records across ten application tables, including the existing order, receipt, approvals, inventory, mandate, carts, and seller credential. Every imported table was verified against its source checksum; `autoshop_data_imports` retains that audit. The temporary export route and import credential were removed after cutover. The former Netlify URL redirects to Railway. Original source tables remain intact in the Netlify `autoshop_retired` schema as a backup; historical app and export routes can no longer read them.
 
@@ -110,9 +106,21 @@ The UI is framework-free HTML, CSS, and JavaScript. Request handlers in `functio
 
 ## Deliberate limits
 
-AutoShop is a focused authority demonstration, not a complete commerce platform. It has one seeded seller and catalogue, no payments, fulfilment, tax, analytics, product editing, or multi-store administration. Those conventional seller features would add surface area without strengthening the demonstrated WebMCP boundary.
+AutoShop is a focused authority demonstration, not a complete commerce platform. It has one seeded seller and catalogue per Google account, no payments, fulfilment, tax, analytics, product editing, or multi-store administration. Those conventional seller features would add surface area without strengthening the demonstrated WebMCP boundary.
 
-All SVG artwork in `public/img` is project-created and stored in this repository; the app loads no third-party fonts, scripts, trackers, or image assets.
+All SVG artwork in `public/img` is project-created and stored in this repository. Authentication loads Clerk's official JavaScript/UI SDKs and Google OAuth; app fonts and product assets remain local.
+
+## Review and operating notes
+
+- [Architecture and isolation](docs/architecture.md)
+- [Demo walkthrough](docs/demo-guide.md)
+- [Local setup](docs/local-setup.md)
+- [Verification record](docs/verification.md)
+- [Security boundaries](SECURITY.md)
+
+The hosted demo currently uses a dedicated **Clerk development instance** with shared Google OAuth credentials. It is a synthetic evaluation demo, not a production identity deployment. A production Clerk instance requires a domain you control and your own Google OAuth configuration; do not silently reuse another project's identity app.
+
+Schema-per-account isolation keeps this demo easy to inspect. It is not an economical design for very large tenant counts without provisioning quotas, retention cleanup, and a separate production security review. Do not enter real customer data; Google identity is used by Clerk, while AutoShop stores a hashed account identifier in its schema name rather than copying the Google profile.
 
 ## License
 
