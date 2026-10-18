@@ -15,3 +15,9 @@ test('buyer and seller portal navigation keeps the public repository visible', a
   const portal = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
   assert.match(portal, /class="portal-nav"[^>]*>[\s\S]*href="https:\/\/github\.com\/I-am-Mr-Rookie\/autoshop-webmcp"/);
 });
+
+test('seller portal tool notes stay outside definition lists and nav sits outside main', async () => {
+  const portal = await readFile(new URL('../public/index.html', import.meta.url), 'utf8');
+  for (const [, contents] of portal.matchAll(/<dl>([\s\S]*?)<\/dl>/g)) assert.doesNotMatch(contents, /<p\b/);
+  assert.ok(portal.indexOf('class="topbar"') < portal.indexOf('<main>'));
+});

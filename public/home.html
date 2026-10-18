@@ -12,7 +12,7 @@
     :root {
       color-scheme: light;
       --canvas: #f1f4f6; --canvas-line: #e2e8ec; --surface: #ffffff; --surface-2: #f7f9fa;
-      --inset: #1d2b34; --ink: #1d2b34; --ink-2: #33444f; --muted: #66747d;
+      --inset: #1d2b34; --ink: #1d2b34; --ink-2: #33444f; --muted: #5c6a73;
       --line: #d7dee3; --line-strong: #aeb9c1;
       --agent: #047857; --agent-ink: #065f46; --agent-tint: #e6f4ee; --agent-line: #9ed3bd;
       --human: #b45309; --human-ink: #92400e; --human-tint: #fbf0e1; --human-line: #ecc48f;
@@ -171,6 +171,7 @@
       .parts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
     @media (max-width: 640px) {
+      .topbar .wrap { flex-wrap: wrap; row-gap: 8px; padding-block: 6px; }
       .brand span { display: none; }
       .portal-nav a { padding: 0 12px; }
       .features, .parts { grid-template-columns: 1fr; }

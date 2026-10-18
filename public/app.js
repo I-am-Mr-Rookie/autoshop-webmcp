@@ -388,6 +388,7 @@ async function setupBuyerConfirmation() {
       card.querySelector('.product-price').textContent = money(product.price_cents);
       const add = card.querySelector('button');
       add.dataset.productId = product.id;
+      add.setAttribute('aria-label', `Add ${product.name} to cart`);
       add.disabled = product.stock === 0;
       return card;
     }) : [Object.assign(document.createElement('p'), { textContent: 'No matching parts. Try a shorter search.' })]));
@@ -407,6 +408,10 @@ async function setupBuyerConfirmation() {
       increase.disabled = item.quantity >= (product?.stock ?? 20) || item.quantity >= 20;
       removeButton.dataset.action = 'remove';
       for (const control of [decrease, increase, removeButton]) control.dataset.productId = item.product_id;
+      const name = product?.name ?? item.product_id;
+      decrease.setAttribute('aria-label', `Decrease ${name} quantity`);
+      increase.setAttribute('aria-label', `Increase ${name} quantity`);
+      removeButton.setAttribute('aria-label', `Remove ${name}`);
       return row;
     }) : [Object.assign(document.createElement('li'), { textContent: 'Your cart is empty. Add a part to begin.' })]));
     total.textContent = money(state.cart.total_cents);
@@ -827,6 +832,7 @@ if (typeof document !== 'undefined') {
   else {
     document.querySelectorAll('[data-role-view]').forEach(view => { view.hidden = view.dataset.roleView !== role; });
     document.title = `AutoShop ${role}`;
+    document.querySelector(`.portal-nav a[href="/${role}"]`)?.setAttribute('aria-current', 'page');
     if (role === 'buyer') setupBuyerConfirmation();
     else setupSellerAuthentication();
 
