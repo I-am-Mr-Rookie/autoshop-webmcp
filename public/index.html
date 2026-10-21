@@ -135,6 +135,20 @@
     #buyer-confirmation button[type="submit"]::before, #buyer-submit-order::before, #seller-approval button[type="submit"]::before, #seller-commit-approved::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px #ffffff40; }
     #buyer-confirmation button[type="submit"]:disabled::before, #buyer-submit-order:disabled::before, #seller-approval button[type="submit"]:disabled::before, #seller-commit-approved:disabled::before { background: var(--line-strong); box-shadow: none; }
     .order-actions button[data-approve-action] { border-color: var(--human); background: var(--human-tint); color: var(--human-ink); }
+
+    /* ---------------------------------------------- Sign-in and account chip */
+    .auth-methods { display: grid; gap: 16px; width: min(100%, 400px); margin-top: 24px; }
+    #auth-status { max-width: 60ch; margin-top: 16px; color: var(--ink-2); }
+    /* Google light-theme button: white fill, #747775 1px stroke, #1F1F1F text, standard-color G at 18px. */
+    #google-sign-in { gap: 10px; min-height: 44px; padding: 0 12px; border: 1px solid #747775; border-radius: 4px; background: #ffffff; color: #1f1f1f; font: 500 14px/20px "Google Sans", Roboto, Arial, sans-serif; letter-spacing: .25px; }
+    #google-sign-in svg { flex: none; width: 18px; height: 18px; }
+    #google-sign-in:hover:not(:disabled) { border-color: #747775; background: #eeeeee; }
+    #google-sign-in:disabled { border: 1px solid #1f1f1f1f; background: #ffffff61; color: #1f1f1f61; }
+    #google-sign-in:disabled svg { opacity: .38; }
+    .account-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding-block: 12px; }
+    .account-chip { display: inline-flex; align-items: center; gap: 8px; min-width: 0; max-width: 100%; padding: 3px 3px 3px 14px; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--surface); color: var(--ink-2); font-size: .85rem; }
+    #account-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .account-chip .btn-ghost { flex: none; min-height: 40px; padding: 8px 14px; border-radius: 999px; font-size: .85rem; }
     .order-actions button[data-approve-action]:hover:not(:disabled) { background: var(--human); border-color: var(--human); color: #fff; }
     #seller-commit-approved { margin-top: 14px; }
     #buyer-submit-order { margin-top: 14px; }
@@ -332,11 +346,16 @@
     <p class="eyebrow">Your own demo shop</p>
     <h1 id="auth-title">Sign in to AutoShop</h1>
     <p id="auth-status" role="status">Loading secure sign-in…</p>
-    <button id="google-sign-in" type="button" disabled>Continue with Google</button>
-    <div id="clerk-auth-component" role="group" aria-label="Sign in with an email code"></div>
+    <div class="auth-methods">
+      <button id="google-sign-in" type="button" disabled><svg aria-hidden="true" focusable="false" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg><span>Continue with Google</span></button>
+      <div id="clerk-auth-component" role="group" aria-label="Sign in with an email code"></div>
+    </div>
     <p class="hint">Synthetic inventory only. No real purchases, payments, or shipping.</p>
   </section>
-  <div id="demo-account" class="wrap" hidden style="padding-block:12px">Your isolated demo shop · buyer and seller portals share only your data. <button id="demo-sign-out" type="button">Sign out</button></div>
+  <div id="demo-account" class="wrap account-bar" hidden>
+    <p class="hint">Your isolated demo shop · buyer and seller portals share only your data.</p>
+    <div class="account-chip"><span class="sr-only">Signed in as </span><span id="account-label">your account</span><button id="demo-sign-out" class="btn-ghost" type="button">Sign out</button></div>
+  </div>
   <main>
     <section data-role-view="seller">
       <header class="portal-header">
@@ -369,7 +388,7 @@
         <form class="seller-login panel" id="seller-login" hidden>
           <div class="panel-head"><div><h2>Seller sign in</h2><p class="hint">The demo credential is supplied privately. It is never stored in this page or repository.</p></div></div>
           <div class="panel-body">
-            <p>You are signed in with Google. Open or refresh your private seller session.</p>
+            <p>You are signed in. Open or refresh your private seller session.</p>
             <button type="submit">Sign in to seller portal</button>
             <output class="confirmation-status" id="seller-login-status" aria-live="polite"></output>
           </div>

@@ -1,4 +1,4 @@
-import { authenticatedFetch as fetch, ensureGoogleSession, signOutGoogle } from './auth.js';
+import { authenticatedFetch as fetch, ensureSession, signOut } from './auth.js';
 
 export const MANDATE = Object.freeze({
   mandate_version: 1,
@@ -821,7 +821,7 @@ async function setupSellerAuthentication() {
 
   logout.addEventListener('click', async () => {
     logout.disabled = true;
-    try { await fetch('/api/seller/auth', { method: 'DELETE' }); await signOutGoogle(); } catch {} finally {
+    try { await fetch('/api/seller/auth', { method: 'DELETE' }); await signOut(); } catch {} finally {
       deactivate('Logged out · seller tools removed');
       logout.disabled = false;
     }
@@ -832,7 +832,7 @@ async function setupSellerAuthentication() {
 
 if (typeof document !== 'undefined') markCurrentNav(document, location.pathname);
 
-if (typeof document !== 'undefined' && await ensureGoogleSession()) {
+if (typeof document !== 'undefined' && await ensureSession()) {
   addEventListener('pagehide', () => {
     buyerAuthorization = undefined;
     sellerAuthorization = undefined;
