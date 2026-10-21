@@ -42,8 +42,9 @@ test('every page shares one token stylesheet and loads no external fonts', async
 
 test('type tokens use Source Serif 4 and Source Code Pro with metric-matched fallbacks', async () => {
   const css = await read('site.css');
-  assert.match(css, /--mono:\s*"Source Code Pro", "Source Code Pro Fallback"/);
-  assert.match(css, /--serif:\s*"Source Serif 4", "Source Serif 4 Fallback"/);
+  // Run 11a: an optional unicode-range "AutoShop Symbols" face may precede the text face (→ ↗ ● only).
+  assert.match(css, /--mono:\s*(?:"AutoShop Symbols", )?"Source Code Pro", "Source Code Pro Fallback"/);
+  assert.match(css, /--serif:\s*(?:"AutoShop Symbols", )?"Source Serif 4", "Source Serif 4 Fallback"/);
   const faces = [...css.matchAll(/@font-face\s*\{([^}]*)\}/g)].map(([, body]) => body);
   for (const family of ['Source Serif 4', 'Source Code Pro']) {
     const web = faces.find(body => body.includes('font-family: "' + family + '";'));
