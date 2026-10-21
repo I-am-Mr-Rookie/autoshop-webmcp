@@ -10,8 +10,9 @@
   <link rel="preload" href="/fonts/source-serif-4-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/fonts/source-code-pro-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/site.css">
+  <script type="module" src="/home-motion.js"></script>
   <style>
-    /* AutoShop homepage · technical paper · no scripts, no external requests */
+    /* AutoShop homepage · technical paper · no external requests · static and complete without /home-motion.js */
     :root {
       color-scheme: light;
       font-family: var(--sans); font-size: 16px; line-height: 1.5; color: var(--ink); background: var(--canvas);
@@ -64,6 +65,8 @@
 
     /* sections */
     section.band { padding: clamp(40px, 5vw, 72px) 0; }
+    /* below-the-fold bands skip layout until near the viewport (Run 11 long-task fix) */
+    main > section.band { content-visibility: auto; contain-intrinsic-size: auto 1100px; }
     .section-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 40px; align-items: end; margin-bottom: 32px; }
     .section-head h2 { margin-top: 14px; }
     .section-head .hint { max-width: 52ch; font-size: 1rem; }
@@ -157,11 +160,18 @@
     footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 32px; }
     footer .mono { font-size: .74rem; }
 
-    /* motion: one coordinated fade-up, staggered */
-    .rise { animation: rise .6s var(--ease) both; }
-    .rise:nth-child(2) { animation-delay: 70ms; } .rise:nth-child(3) { animation-delay: 140ms; } .rise:nth-child(4) { animation-delay: 210ms; }
-    .hero-art.rise { animation-delay: 160ms; }
-    @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+    /* motion layer: /home-motion.js adds .motion and animates transform/opacity only; nothing here hides content without it */
+    .motion .hero { position: relative; isolation: isolate; }
+    .motion h1 .w { display: inline-block; }
+    .motion .pending { opacity: 0; }
+    .ambient { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+    .ambient i { position: absolute; width: 44rem; height: 44rem; border-radius: 50%; will-change: transform; }
+    .ambient .a { left: -16rem; top: -14rem; background: radial-gradient(closest-side, rgb(4 120 87 / .05), transparent); }
+    .ambient .h { right: -18rem; top: 4rem; background: radial-gradient(closest-side, rgb(180 83 9 / .05), transparent); }
+    .arch { position: relative; }
+    .packet { position: absolute; top: 0; left: 0; z-index: 2; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--agent); box-shadow: 0 0 0 4px rgb(4 120 87 / .18); opacity: 0; pointer-events: none; }
+    .packet b { position: absolute; inset: 0; border-radius: 50%; background: var(--human); box-shadow: 0 0 0 4px rgb(180 83 9 / .22); opacity: 0; }
+    @media print { .ambient, .packet { display: none; } .motion .pending { opacity: 1; } }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0ms !important; transition-duration: .01ms !important; } .topbar { backdrop-filter: none; } }
     :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 
@@ -205,11 +215,11 @@
     <header class="hero">
       <div class="wrap grid">
         <div class="hero-copy">
-          <p class="eyebrow rise">AutoShop · seller authority for agentic commerce</p>
-          <h1 class="rise">The agent handles routine orders.<br>The seller keeps authority.</h1>
-          <p class="lede rise">AutoShop lets a seller give a browser agent a live numerical mandate. Orders inside it can proceed; exceptions stop for exact, visible human approval; every successful decision leaves a receipt. The tiny synthetic marketplace is the deterministic test harness that makes this seller boundary easy to inspect.</p>
-          <p class="scenario rise">6 units requested → mandate allows 5 → APPROVAL_REQUIRED → seller approves one exact action → immutable receipt</p>
-          <div class="hero-actions rise">
+          <p class="eyebrow">AutoShop · seller authority for agentic commerce</p>
+          <h1>The agent handles routine orders.<br>The seller keeps authority.</h1>
+          <p class="lede">AutoShop lets a seller give a browser agent a live numerical mandate. Orders inside it can proceed; exceptions stop for exact, visible human approval; every successful decision leaves a receipt. The tiny synthetic marketplace is the deterministic test harness that makes this seller boundary easy to inspect.</p>
+          <p class="scenario">6 units requested → mandate allows 5 → APPROVAL_REQUIRED → seller approves one exact action → immutable receipt</p>
+          <div class="hero-actions">
             <a class="btn" href="/seller">Open the seller control plane</a>
             <a class="btn btn-secondary" href="/buyer">Generate a buyer order</a>
             <a class="text-link" href="https://github.com/I-am-Mr-Rookie/autoshop-webmcp" target="_blank" rel="noopener noreferrer">Read the source on GitHub</a>
@@ -222,7 +232,7 @@
             <li>Synthetic only · no payments</li>
           </ul>
         </div>
-        <figure class="hero-art rise">
+        <figure class="hero-art">
           <img src="/img/hero-circuit.svg" width="560" height="440" alt="Schematic: seeded parts flow through a green agent node, then across an amber dashed boundary to a human approval switch that issues a receipt.">
           <figcaption><span>fig. 1 — the authority circuit</span><b>amber line = human decides</b></figcaption>
         </figure>

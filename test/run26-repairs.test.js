@@ -46,13 +46,14 @@ test('reset requires a seller session, same origin, and exact RESET confirmation
   assert.equal(resets, 1);
 });
 
-test('root registers no tools and serves the script-free public homepage', async () => {
+test('root registers no tools and serves a homepage whose only script is the motion module', async () => {
   const registrations = [];
   await registerRoleTools({ registerTool: async tool => registrations.push(tool.name) }, '/', () => {});
   assert.deepEqual(registrations, []);
 
   const home = await readFile(new URL('../public/home.html', import.meta.url), 'utf8');
-  assert.doesNotMatch(home, /<script/i);
+  assert.deepEqual(home.match(/<script\b[^>]*>/gi), ['<script type="module" src="/home-motion.js">']);
+  assert.doesNotMatch(home, /<script\b[^>]*>\s*[^<\s]/i);
   assert.match(home, /href="\/buyer"/);
   assert.match(home, /href="\/seller"/);
   assert.doesNotMatch(home, /every consequential step stops|session, cart, and confirmation token live only in this browser/i);
