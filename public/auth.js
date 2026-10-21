@@ -22,6 +22,24 @@ const loadScript = (src, key) => new Promise((resolve, reject) => {
 
 export const signOutGoogle = () => clerk?.signOut({ redirectUrl: '/' });
 
+// Prebuilt sign-in (D3 Path A), themed from the page's live :root brand tokens. Google stays on the page's own button.
+const tokenVariables = { colorPrimary: '--agent', colorForeground: '--ink', colorInputForeground: '--ink', colorMutedForeground: '--muted',
+  colorDanger: '--alert', colorBackground: '--surface', colorInput: '--surface', colorBorder: '--line-strong', borderRadius: '--radius', fontFamily: '--sans' };
+export const appearanceFromTokens = read => ({
+  variables: Object.fromEntries(Object.entries(tokenVariables).map(([key, name]) => [key, String(read(name) ?? '').trim()]).filter(([, value]) => value)),
+  elements: { socialButtonsRoot: { display: 'none' }, dividerRow: { display: 'none' } }
+});
+
+// One email-code form signs in existing accounts and signs up new ones, then returns to the same portal.
+export const emailSignInOptions = pathname => {
+  const target = pathname === '/buyer' ? '/buyer' : '/seller';
+  return { routing: 'hash', withSignUp: true, forceRedirectUrl: target, signUpForceRedirectUrl: target };
+};
+
+export const mountEmailSignIn = (instance, node, pathname) => pathname === '/sign-up'
+  ? instance.mountSignUp(node, emailSignInOptions(pathname))
+  : instance.mountSignIn(node, emailSignInOptions(pathname));
+
 export const ensureGoogleSession = async () => {
   const gate = document.querySelector('#auth-gate');
   const status = document.querySelector('#auth-status');
@@ -36,23 +54,15 @@ export const ensureGoogleSession = async () => {
       loadScript(`${base}/@clerk/clerk-js@6.39.1/dist/clerk.browser.js`, config.publishableKey)
     ]);
     clerk = window.Clerk;
-    await clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor }, signInUrl: '/sign-in', signUpUrl: '/sign-up', telemetry: false });
+    await clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor }, appearance: appearanceFromTokens(name => getComputedStyle(document.documentElement).getPropertyValue(name)), signInUrl: '/sign-in', signUpUrl: '/sign-up', telemetry: false });
     if (location.pathname === '/sso-callback') {
       status.textContent = 'Completing Google sign-in…';
       await clerk.handleRedirectCallback({ signInUrl: '/sign-in', signUpUrl: '/sign-up', signInFallbackRedirectUrl: '/seller', signUpFallbackRedirectUrl: '/seller' });
       return false;
     }
-    if (!clerk.user && ['/sign-in', '/sign-up'].includes(location.pathname)) {
-      button.hidden = true;
-      status.textContent = 'Continue with Google. No shared demo password is needed.';
-      const target = document.querySelector('#clerk-auth-component');
-      const options = { routing: 'hash', forceRedirectUrl: '/seller', signInUrl: '/sign-in', signUpUrl: '/sign-up' };
-      if (location.pathname === '/sign-up') clerk.mountSignUp(target, options);
-      else clerk.mountSignIn(target, options);
-      return false;
-    }
     if (!clerk.user) {
-      status.textContent = 'Your Google account gets its own products, cart, orders, and approvals. Nothing is shared with other evaluators.';
+      status.textContent = 'Use Google or a one-time email code. Each account gets its own products, cart, orders, and approvals.';
+      mountEmailSignIn(clerk, document.querySelector('#clerk-auth-component'), location.pathname);
       button.disabled = false;
       button.addEventListener('click', async () => {
         button.disabled = true;
