@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="theme-color" content="#f2f5f3">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="What the AutoShop demo stores, why, and how to remove it.">
+  <title>Privacy · AutoShop</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%2313241f'/%3E%3Cpath d='M16 46 28 18h8l12 28h-8l-2-6H26l-2 6zm13-13h6l-3-9z' fill='%236ee7b7'/%3E%3C/svg%3E">
+  <link rel="preload" href="/fonts/source-serif-4-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/source-code-pro-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/source-code-pro-symbols-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/site.css">
+  <style>
+    /* AutoShop legal page · narrow reading measure · no scripts, no external requests */
+    :root {
+      color-scheme: light;
+      font-family: var(--sans); font-size: 16px; line-height: 1.6; color: var(--ink); background: var(--canvas);
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    .wrap { width: min(1280px, 100% - 2 * var(--gutter)); margin-inline: auto; }
+    a { color: var(--focus); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    a:hover { color: var(--ink); }
+    :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+    main { width: min(68ch, 100% - 2 * var(--gutter)); margin: 0 auto; padding: clamp(40px, 6vw, 80px) 0 56px; }
+    .eyebrow { color: var(--muted); font: 600 .72rem/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+    h1 { margin: 14px 0 0; font: var(--display-weight) clamp(2.2rem, 1.4rem + 2.6vw, 3.2rem)/1.05 var(--serif); letter-spacing: -.015em; }
+    h2 { margin: 36px 0 8px; font: 700 1.1rem/1.3 var(--sans); }
+    p, ul { margin: 0 0 12px; color: var(--ink-2); }
+    ul { padding-left: 1.2em; }
+    .updated { margin-top: 10px; color: var(--muted); font: 500 .8rem/1.4 var(--mono); }
+    code { font: 500 .88em var(--mono); color: var(--agent-ink); }
+    footer { border-top: 1px solid var(--line); background: var(--surface); }
+    footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 20px; padding-block: 22px; color: var(--muted); font: 500 .8rem/1.4 var(--mono); }
+    footer a[aria-current="page"] { color: var(--ink); text-decoration: none; font-weight: 700; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <nav class="topbar" aria-label="Site">
+    <div class="wrap">
+      <a class="brand" href="/"><strong>AutoShop</strong><span>Synthetic parts · bounded authority</span></a>
+      <div class="portal-nav">
+        <a href="/">Home</a>
+        <a href="/seller">Seller</a>
+        <a href="/buyer">Buyer</a>
+        <a class="github" href="https://github.com/I-am-Mr-Rookie/autoshop-webmcp" target="_blank" rel="noopener noreferrer">GitHub<span class="sr-only"> (opens in a new tab)</span></a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main-content" tabindex="-1">
+    <p class="eyebrow">AutoShop · demo</p>
+    <h1>Privacy</h1>
+    <p class="updated">Last updated 2026-10-21</p>
+
+    <h2>What this is</h2>
+    <p>AutoShop is a hackathon demonstration of bounded human–agent authority. Products, stock, orders, mandates, and receipts are synthetic. No payment is ever requested or processed.</p>
+
+    <h2>What we collect</h2>
+    <ul>
+      <li><strong>Sign-in.</strong> You sign in with Google or with a one-time code sent to your email. A third-party authentication service handles that sign-in and holds your email address and basic profile. AutoShop's server receives only a verified account ID per request.</li>
+      <li><strong>Demo shop data.</strong> Your account ID is turned into a hashed database schema name (<code>shop_&lt;sha256 prefix&gt;</code>). That schema holds only the synthetic carts, orders, mandates, approvals, and receipts you create.</li>
+      <li><strong>Cookies.</strong> Strictly necessary session cookies for sign-in, plus one seller-session cookie while you use the seller control plane. No advertising or analytics cookies.</li>
+      <li><strong>Logs.</strong> AutoShop's server logs generic error events, not request bodies. Our hosting provider, Railway, may keep standard request logs such as IP address and path.</li>
+    </ul>
+
+    <h2>What we do not do</h2>
+    <p>We do not sell data, run ads, add third-party analytics, or ask for passwords. Text you type into orders is treated as untrusted content and never authorizes an action.</p>
+
+    <h2>Retention and removal</h2>
+    <p>Demo data may be reset or deleted at any time while the demonstration runs. To ask for your sign-in account or demo shop to be removed, open an issue on the <a href="https://github.com/I-am-Mr-Rookie/autoshop-webmcp/issues">project repository</a> without posting personal details, and we will follow up.</p>
+
+    <p>See also the <a href="/terms">terms of use</a>.</p>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>AutoShop · synthetic demo · no payments</span>
+      <a href="/privacy" aria-current="page">Privacy</a>
+      <a href="/terms">Terms</a>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,4 +1,4 @@
-import { authenticatedFetch as fetch, ensureGoogleSession, signOutGoogle } from './auth.js';
+import { authenticatedFetch as fetch, ensureSession, signOut } from './auth.js';
 
 export const MANDATE = Object.freeze({
   mandate_version: 1,
@@ -169,7 +169,7 @@ export const BUYER_TOOLS = Object.freeze([
         confirm_token: buyerAuthorization.confirm_token
       });
       buyerAuthorization = undefined;
-      if (typeof document.dispatchEvent === 'function') document.dispatchEvent(new Event('autoshop:order-change'));
+      if (typeof document.dispatchEvent === 'function') document.dispatchEvent(new CustomEvent('autoshop:order-change', { detail: result.order }));
       return result;
     }))
 ]);
@@ -277,6 +277,10 @@ export async function registerRoleTools(modelContext, pathname, onPageHide) {
     document.addEventListener('autoshop:seller-session-lost', () => controller.abort(), { once: true, signal: controller.signal });
   }
   return () => controller.abort();
+}
+
+export function markCurrentNav(doc, pathname) {
+  if (pathname === '/buyer' || pathname === '/seller') doc.querySelector(`.portal-nav a[href="${pathname}"]`)?.setAttribute('aria-current', 'page');
 }
 
 let buyerAuthorization;
@@ -503,14 +507,12 @@ async function setupBuyerConfirmation() {
   });
 
   document.addEventListener('autoshop:buyer-change', () => { clearAuthorization(); load(); });
-  document.addEventListener('autoshop:order-change', () => {
+  document.addEventListener('autoshop:order-change', event => {
     // submit_order consumed the authorization and emptied the server cart.
     clearAuthorization();
     confirmationStatus.textContent = 'Authorization consumed. The seller can now review this order.';
+    renderOrder(event.detail);
     load();
-    readBuyerOrder(fetch)
-      .then(result => { renderOrder(result.order); })
-      .catch(error => { orderStatus.textContent = error.message; });
   });
 }
 
@@ -686,11 +688,11 @@ async function setupSellerAuthentication() {
   mandateForm.addEventListener('submit', async event => {
     event.preventDefault();
     if (!mandateForm.reportValidity()) return;
+    const values = Object.fromEntries(new FormData(mandateForm));
     mandateFields.disabled = true;
     mandateForm.setAttribute('aria-busy', 'true');
     mandateStatus.textContent = 'Saving mandate…';
     try {
-      const values = Object.fromEntries(new FormData(mandateForm));
       const response = await fetch('/api/seller/mandate', {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
@@ -817,7 +819,7 @@ async function setupSellerAuthentication() {
 
   logout.addEventListener('click', async () => {
     logout.disabled = true;
-    try { await fetch('/api/seller/auth', { method: 'DELETE' }); await signOutGoogle(); } catch {} finally {
+    try { await fetch('/api/seller/auth', { method: 'DELETE' }); await signOut(); } catch {} finally {
       deactivate('Logged out · seller tools removed');
       logout.disabled = false;
     }
@@ -826,7 +828,9 @@ async function setupSellerAuthentication() {
   document.addEventListener('autoshop:seller-change', loadOrders);
 }
 
-if (typeof document !== 'undefined' && await ensureGoogleSession()) {
+if (typeof document !== 'undefined') markCurrentNav(document, location.pathname);
+
+if (typeof document !== 'undefined' && await ensureSession()) {
   addEventListener('pagehide', () => {
     buyerAuthorization = undefined;
     sellerAuthorization = undefined;
@@ -836,7 +840,6 @@ if (typeof document !== 'undefined' && await ensureGoogleSession()) {
   else {
     document.querySelectorAll('[data-role-view]').forEach(view => { view.hidden = view.dataset.roleView !== role; });
     document.title = `AutoShop ${role}`;
-    document.querySelector(`.portal-nav a[href="/${role}"]`)?.setAttribute('aria-current', 'page');
     if (role === 'buyer') setupBuyerConfirmation();
     else setupSellerAuthentication();
 

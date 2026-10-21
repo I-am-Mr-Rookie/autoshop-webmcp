@@ -16,7 +16,8 @@ test('buyer WebMCP tools use the buyer APIs and return bounded results', async (
   const originalDocument = globalThis.document;
   const originalFetch = globalThis.fetch;
   const calls = [];
-  globalThis.document = {};
+  const events = [];
+  globalThis.document = { dispatchEvent: event => events.push(event) };
   globalThis.fetch = async (url, options = {}) => {
     calls.push({ url, options });
     if (url.startsWith('/api/buyer?')) return new Response(JSON.stringify({
@@ -48,6 +49,10 @@ test('buyer WebMCP tools use the buyer APIs and return bounded results', async (
       mode: 'Auto', buyer_name: 'Judge', buyer_email: 'judge@example.test', buyer_country: 'BD', cart_version: 2
     });
     assert.equal((await app.BUYER_TOOLS[2].execute({ order_id: 'order_demo' })).order.status, 'requested');
+    const orderChange = events.find(event => event.type === 'autoshop:order-change');
+    assert.equal(orderChange.detail.order_id, 'order_demo');
+    assert.equal(orderChange.detail.status, 'requested');
+    assert.equal('confirm_token' in orderChange.detail, false);
     assert.match(calls[0].url, /^\/api\/buyer\?query=ddr&limit=1$/);
     assert.deepEqual(JSON.parse(calls[1].options.body), { action: 'add', product_id: 'ram-1', quantity: 3 });
     assert.equal(calls.some(call => call.url === '/api/buyer' && JSON.parse(call.options.body).action === 'add'), true);
@@ -58,6 +63,15 @@ test('buyer WebMCP tools use the buyer APIs and return bounded results', async (
     globalThis.document = originalDocument;
     globalThis.fetch = originalFetch;
   }
+});
+
+test('agent submission renders the committed response without a second fallible order lookup', async () => {
+  const source = await readFile(new URL('../public/app.js', import.meta.url), 'utf8');
+  const start = source.indexOf("document.addEventListener('autoshop:order-change'");
+  const handler = source.slice(start, source.indexOf('async function setupSellerAuthentication', start));
+  assert.ok(start > 0, 'order-change handler exists');
+  assert.match(handler, /renderOrder\(event\.detail\)/);
+  assert.doesNotMatch(handler, /readBuyerOrder/);
 });
 
 test('buyer startup recovers the latest order and renders its receipt without browser storage', async () => {

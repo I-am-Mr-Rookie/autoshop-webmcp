@@ -16,52 +16,66 @@ const loadScript = (src, key) => new Promise((resolve, reject) => {
   script.crossOrigin = 'anonymous';
   if (key) script.dataset.clerkPublishableKey = key;
   script.onload = resolve;
-  script.onerror = () => reject(new Error('Google sign-in could not load. Please retry.'));
+  script.onerror = () => reject(new Error('Sign-in script failed to load.'));
   document.head.appendChild(script);
 });
 
-export const signOutGoogle = () => clerk?.signOut({ redirectUrl: '/' });
+export const signOut = () => clerk?.signOut({ redirectUrl: '/' });
 
-export const ensureGoogleSession = async () => {
+// Google always returns through /sso-callback, then to the portal that started sign-in.
+export const googleRedirectOptions = (origin, pathname) => ({
+  strategy: 'oauth_google', redirectUrl: `${origin}/sso-callback`, redirectUrlComplete: `${origin}${pathname === '/buyer' ? '/buyer' : '/seller'}`
+});
+
+export const accountLabel = user => user.primaryEmailAddress?.emailAddress || user.fullName || 'your account';
+
+// Prebuilt sign-in (D3 Path A), themed from the page's live :root brand tokens. Google stays on the page's own button.
+const tokenVariables = { colorPrimary: '--agent', colorForeground: '--ink', colorInputForeground: '--ink', colorMutedForeground: '--muted',
+  colorDanger: '--alert', colorBackground: '--surface', colorInput: '--surface', colorBorder: '--line-strong', borderRadius: '--radius', fontFamily: '--sans' };
+export const appearanceFromTokens = read => ({
+  variables: Object.fromEntries(Object.entries(tokenVariables).map(([key, name]) => [key, String(read(name) ?? '').trim()]).filter(([, value]) => value)),
+  elements: { rootBox: { width: '100%' }, cardBox: { width: '100%' }, socialButtonsRoot: { display: 'none' }, dividerRow: { display: 'none' } }
+});
+
+// One email-code form signs in existing accounts and signs up new ones, then returns to the same portal.
+export const emailSignInOptions = pathname => {
+  const target = pathname === '/buyer' ? '/buyer' : '/seller';
+  return { routing: 'hash', withSignUp: true, forceRedirectUrl: target, signUpForceRedirectUrl: target };
+};
+
+export const mountEmailSignIn = (instance, node, pathname) => pathname === '/sign-up'
+  ? instance.mountSignUp(node, emailSignInOptions(pathname))
+  : instance.mountSignIn(node, emailSignInOptions(pathname));
+
+export const ensureSession = async () => {
   const gate = document.querySelector('#auth-gate');
   const status = document.querySelector('#auth-status');
   const button = document.querySelector('#google-sign-in');
   try {
     const response = await nativeFetch('/api/config');
     const config = await response.json();
-    if (!response.ok || !config.ok) throw new Error('Google sign-in is not configured.');
+    if (!response.ok || !config.ok) throw new Error('Sign-in is not configured.');
     const base = `https://${config.domain}/npm`;
     await Promise.all([
       loadScript(`${base}/@clerk/ui@1/dist/ui.browser.js`),
       loadScript(`${base}/@clerk/clerk-js@6.39.1/dist/clerk.browser.js`, config.publishableKey)
     ]);
     clerk = window.Clerk;
-    await clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor }, signInUrl: '/sign-in', signUpUrl: '/sign-up' });
+    await clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor }, appearance: appearanceFromTokens(name => getComputedStyle(document.documentElement).getPropertyValue(name)), signInUrl: '/sign-in', signUpUrl: '/sign-up', telemetry: false });
     if (location.pathname === '/sso-callback') {
-      status.textContent = 'Completing Google sign-in…';
+      status.textContent = 'Finishing sign-in…';
       await clerk.handleRedirectCallback({ signInUrl: '/sign-in', signUpUrl: '/sign-up', signInFallbackRedirectUrl: '/seller', signUpFallbackRedirectUrl: '/seller' });
       return false;
     }
-    if (!clerk.user && ['/sign-in', '/sign-up'].includes(location.pathname)) {
-      button.hidden = true;
-      status.textContent = 'Continue with Google. No shared demo password is needed.';
-      const target = document.querySelector('#clerk-auth-component');
-      const options = { routing: 'hash', forceRedirectUrl: '/seller', signInUrl: '/sign-in', signUpUrl: '/sign-up' };
-      if (location.pathname === '/sign-up') clerk.mountSignUp(target, options);
-      else clerk.mountSignIn(target, options);
-      return false;
-    }
     if (!clerk.user) {
-      status.textContent = 'Your Google account gets its own products, cart, orders, and approvals. Nothing is shared with other evaluators.';
+      status.textContent = 'Sign in with Google or your email. Each account gets its own products, cart, orders, and approvals.';
+      mountEmailSignIn(clerk, document.querySelector('#clerk-auth-component'), location.pathname);
       button.disabled = false;
       button.addEventListener('click', async () => {
         button.disabled = true;
         status.textContent = 'Opening Google…';
         try {
-          await clerk.client.signIn.authenticateWithRedirect({
-            strategy: 'oauth_google', redirectUrl: `${location.origin}/sso-callback`,
-            redirectUrlComplete: `${location.origin}${location.pathname === '/buyer' ? '/buyer' : '/seller'}`
-          });
+          await clerk.client.signIn.authenticateWithRedirect(googleRedirectOptions(location.origin, location.pathname));
         } catch {
           status.textContent = 'Google sign-in did not complete. Please retry.';
           button.disabled = false;
@@ -74,7 +88,8 @@ export const ensureGoogleSession = async () => {
     document.body.classList.remove('auth-pending');
     const account = document.querySelector('#demo-account');
     account.hidden = false;
-    document.querySelector('#demo-sign-out').addEventListener('click', signOutGoogle);
+    document.querySelector('#account-label').textContent = accountLabel(clerk.user);
+    document.querySelector('#demo-sign-out').addEventListener('click', signOut);
     const initialUser = clerk.user.id;
     clerk.addListener(({ user, session }) => {
       if (!session || user?.id !== initialUser) {
@@ -83,8 +98,8 @@ export const ensureGoogleSession = async () => {
       }
     });
     return true;
-  } catch (error) {
-    status.textContent = error.message;
+  } catch {
+    status.textContent = 'Sign-in could not load. Refresh to retry.'; // Never surface library or provider error text.
     button.disabled = true;
     return false;
   }

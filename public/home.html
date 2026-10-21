@@ -4,31 +4,25 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f2f5f3">
   <meta name="description" content="AutoShop is a seller-controlled authority layer for agentic commerce: routine orders proceed inside a live mandate, while exceptions require exact human approval.">
   <title>AutoShop — seller-controlled agentic commerce</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%231d2b34'/%3E%3Cpath d='M16 46 28 18h8l12 28h-8l-2-6H26l-2 6zm13-13h6l-3-9z' fill='%236ee7b7'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%2313241f'/%3E%3Cpath d='M16 46 28 18h8l12 28h-8l-2-6H26l-2 6zm13-13h6l-3-9z' fill='%236ee7b7'/%3E%3C/svg%3E">
+  <link rel="preload" href="/fonts/source-serif-4-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/source-code-pro-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/source-code-pro-symbols-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/site.css">
+  <script type="module" src="/home-motion.js"></script>
   <style>
-    /* AutoShop homepage · technical paper · no scripts, no external requests */
+    /* AutoShop homepage · technical paper · no external requests · static and complete without /home-motion.js */
     :root {
       color-scheme: light;
-      --canvas: #f1f4f6; --canvas-line: #e2e8ec; --surface: #ffffff; --surface-2: #f7f9fa;
-      --inset: #1d2b34; --ink: #1d2b34; --ink-2: #33444f; --muted: #5c6a73;
-      --line: #d7dee3; --line-strong: #aeb9c1;
-      --agent: #047857; --agent-ink: #065f46; --agent-tint: #e6f4ee; --agent-line: #9ed3bd;
-      --human: #b45309; --human-ink: #92400e; --human-tint: #fbf0e1; --human-line: #ecc48f;
-      --focus: #1e40af;
-      --serif: "DM Serif Display", Fraunces, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-      --sans: Manrope, Aptos, "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
-      --mono: "DM Mono", "IBM Plex Mono", Consolas, "SF Mono", Menlo, monospace;
-      --radius: 3px; --gutter: clamp(18px, 3.2vw, 40px);
-      --ease: cubic-bezier(.22, 1, .36, 1); --fast: 160ms;
       font-family: var(--sans); font-size: 16px; line-height: 1.5; color: var(--ink); background: var(--canvas);
     }
     *, *::before, *::after { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; background-color: var(--canvas); background-image: linear-gradient(var(--canvas-line) 1px, transparent 1px), linear-gradient(90deg, var(--canvas-line) 1px, transparent 1px); background-size: 32px 32px; background-position: center top; overflow-x: clip; }
     .wrap { width: min(1280px, 100% - 2 * var(--gutter)); margin-inline: auto; }
     .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: clamp(16px, 2vw, 28px); }
-    h1, h2, h3 { margin: 0; font-family: var(--serif); font-weight: 400; letter-spacing: -.015em; text-wrap: balance; }
+    h1, h2, h3 { margin: 0; font-family: var(--serif); font-weight: var(--display-weight); letter-spacing: -.015em; text-wrap: balance; }
     h1 { font-size: clamp(2.6rem, 1.2rem + 4.2vw, 4.9rem); line-height: 1; }
     h2 { font-size: clamp(1.7rem, 1.2rem + 1.4vw, 2.5rem); line-height: 1.12; }
     h3 { font-size: 1.2rem; line-height: 1.3; }
@@ -42,15 +36,7 @@
     .mono { font-family: var(--mono); }
 
     /* top bar */
-    .topbar { position: sticky; top: 0; z-index: 10; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter: saturate(1.1) blur(6px); }
-    .topbar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 60px; }
-    .brand { display: inline-flex; align-items: baseline; gap: 12px; color: var(--ink); text-decoration: none; }
-    .brand strong { font: 400 1.35rem/1 var(--serif); }
-    .brand span { color: var(--muted); font: 500 .7rem/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
-    .portal-nav { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); }
-    .portal-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 2px; color: var(--ink-2); font-size: .875rem; font-weight: 600; text-decoration: none; transition: background var(--fast) ease-out, color var(--fast) ease-out; }
-    .portal-nav a:hover { background: var(--surface); color: var(--ink); }
-    .portal-nav a.github { color: var(--muted); }
+    .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
     /* buttons */
     .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 10px 22px; border: 1px solid var(--agent); border-radius: var(--radius); background: var(--agent); color: #fff; font: 700 .95rem/1.2 var(--sans); text-decoration: none; transition: background var(--fast) ease-out, border-color var(--fast) ease-out, color var(--fast) ease-out, transform var(--fast) ease-out; }
@@ -81,6 +67,8 @@
 
     /* sections */
     section.band { padding: clamp(40px, 5vw, 72px) 0; }
+    /* below-the-fold bands skip layout until near the viewport (Run 11 long-task fix) */
+    main > section.band { content-visibility: auto; contain-intrinsic-size: auto 1100px; }
     .section-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 40px; align-items: end; margin-bottom: 32px; }
     .section-head h2 { margin-top: 14px; }
     .section-head .hint { max-width: 52ch; font-size: 1rem; }
@@ -89,7 +77,7 @@
     .circuits { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .circuit { display: grid; gap: 18px; padding: 22px 24px 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
     .circuit-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-    .circuit-head h3 { font: 400 1.35rem/1.2 var(--serif); }
+    .circuit-head h3 { font: var(--display-weight) 1.35rem/1.2 var(--serif); }
     .circuit-head a { font-size: .875rem; font-weight: 600; }
     .steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 0; list-style: none; }
     .steps li { position: relative; display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 4px 12px; padding-right: 20px; }
@@ -102,6 +90,26 @@
     .steps small { color: var(--muted); font-size: .8rem; line-height: 1.4; }
     .steps b { justify-self: start; margin-top: 2px; padding: 3px 7px; border: 1px solid var(--agent-line); border-radius: 2px; color: var(--agent-ink); background: var(--agent-tint); font: 600 .62rem/1 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
     .steps li:last-child b { border-color: var(--human-line); color: var(--human-ink); background: var(--human-tint); }
+
+    /* architecture: hairline stack + lifecycle */
+    .arch { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; margin: 0; }
+    .arch ol { margin: 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+    .arch code { font: 500 .84em var(--mono); color: var(--agent-ink); }
+    .arch-stack li { display: grid; grid-template-columns: 9rem minmax(0, 1fr); gap: 6px 20px; padding: 18px 22px; border-top: 1px solid var(--line); }
+    .arch-stack li:first-child { border-top: 0; }
+    .arch-stack li.boundary { border-top: 1px dashed var(--human); border-bottom: 1px dashed var(--human); background: var(--human-tint); }
+    .arch-stack li.boundary + li { border-top: 0; }
+    .arch .tier { grid-row: span 2; color: var(--muted); font: 600 .68rem/1.6 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+    .arch-stack li.boundary .tier, .arch-stack li.boundary code { color: var(--human-ink); }
+    .arch h3 { font: 700 1rem/1.3 var(--sans); }
+    .arch li p { color: var(--ink-2); font-size: .9rem; line-height: 1.55; }
+    .arch-flow { counter-reset: step; }
+    .arch-flow li { position: relative; padding: 16px 22px 16px 58px; border-top: 1px solid var(--line); counter-increment: step; }
+    .arch-flow li:first-child { border-top: 0; }
+    .arch-flow li::before { content: counter(step, decimal-leading-zero); position: absolute; top: 15px; left: 20px; color: var(--agent-ink); font: 600 .72rem/1.6 var(--mono); }
+    .arch-flow li.human::before, .arch-flow li.human strong { color: var(--human-ink); }
+    .arch-flow strong { display: block; margin-bottom: 2px; font: 700 .95rem/1.3 var(--sans); }
+    .arch figcaption { grid-column: 1 / -1; max-width: 88ch; color: var(--muted); font-size: .9rem; line-height: 1.6; }
 
     /* features */
     .features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
@@ -154,11 +162,18 @@
     footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 32px; }
     footer .mono { font-size: .74rem; }
 
-    /* motion: one coordinated fade-up, staggered */
-    .rise { animation: rise .6s var(--ease) both; }
-    .rise:nth-child(2) { animation-delay: 70ms; } .rise:nth-child(3) { animation-delay: 140ms; } .rise:nth-child(4) { animation-delay: 210ms; }
-    .hero-art.rise { animation-delay: 160ms; }
-    @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+    /* motion layer: /home-motion.js adds .motion and animates transform/opacity only; nothing here hides content without it */
+    .motion .hero { position: relative; isolation: isolate; }
+    .motion h1 .w { display: inline-block; }
+    .motion .pending { opacity: 0; }
+    .ambient { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+    .ambient i { position: absolute; width: 44rem; height: 44rem; border-radius: 50%; will-change: transform; }
+    .ambient .a { left: -16rem; top: -14rem; background: radial-gradient(closest-side, rgb(4 120 87 / .05), transparent); }
+    .ambient .h { right: -18rem; top: 4rem; background: radial-gradient(closest-side, rgb(180 83 9 / .05), transparent); }
+    .arch { position: relative; }
+    .packet { position: absolute; top: 0; left: 0; z-index: 2; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--agent); box-shadow: 0 0 0 4px rgb(4 120 87 / .18); opacity: 0; pointer-events: none; }
+    .packet b { position: absolute; inset: 0; border-radius: 50%; background: var(--human); box-shadow: 0 0 0 4px rgb(180 83 9 / .22); opacity: 0; }
+    @media print { .ambient, .packet { display: none; } .motion .pending { opacity: 1; } }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0ms !important; transition-duration: .01ms !important; } .topbar { backdrop-filter: none; } }
     :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 
@@ -166,14 +181,13 @@
     @media (max-width: 900px) {
       .hero .grid { align-items: start; }
       .hero-copy, .hero-art { grid-column: 1 / -1; }
-      .section-head, .circuits, .contracts, .pick { grid-template-columns: 1fr; }
+      .section-head, .circuits, .contracts, .pick, .arch { grid-template-columns: 1fr; }
       .contracts > div + div { border-left: 0; border-top: 1px solid #ffffff1f; }
       .parts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
     @media (max-width: 640px) {
-      .topbar .wrap { flex-wrap: wrap; row-gap: 8px; padding-block: 6px; }
-      .brand span { display: none; }
-      .portal-nav a { padding: 0 12px; }
+      .arch-stack li { grid-template-columns: 1fr; }
+      .arch .tier { grid-row: auto; }
       .features, .parts { grid-template-columns: 1fr; }
       .steps { grid-template-columns: 1fr; gap: 18px; }
       .steps li { padding-right: 0; }
@@ -187,26 +201,29 @@
   </style>
 </head>
 <body>
-  <nav class="topbar" aria-label="Site navigation">
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <nav class="topbar" aria-label="Site">
     <div class="wrap">
-      <a class="brand" href="/" aria-current="page"><strong>AutoShop</strong><span>Synthetic parts · bounded authority</span></a>
+      <a class="brand" href="/"><strong>AutoShop</strong><span>Synthetic parts · bounded authority</span></a>
       <div class="portal-nav">
+        <a href="/" aria-current="page">Home</a>
         <a href="/seller">Seller</a>
         <a href="/buyer">Buyer</a>
-        <a class="github" href="https://github.com/I-am-Mr-Rookie/autoshop-webmcp" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a class="github" href="https://github.com/I-am-Mr-Rookie/autoshop-webmcp" target="_blank" rel="noopener noreferrer">GitHub<span class="sr-only"> (opens in a new tab)</span></a>
       </div>
     </div>
   </nav>
 
-  <main>
+  <main id="main-content" tabindex="-1">
     <header class="hero">
+      <button id="motion-toggle" class="motion-toggle" type="button" aria-pressed="false" hidden>Pause motion</button>
       <div class="wrap grid">
         <div class="hero-copy">
-          <p class="eyebrow rise">AutoShop · seller authority for agentic commerce</p>
-          <h1 class="rise">The agent handles routine orders.<br>The seller keeps authority.</h1>
-          <p class="lede rise">AutoShop lets a seller give a browser agent a live numerical mandate. Orders inside it can proceed; exceptions stop for exact, visible human approval; every successful decision leaves a receipt. The tiny synthetic marketplace is the deterministic test harness that makes this seller boundary easy to inspect.</p>
-          <p class="scenario rise">6 units requested → mandate allows 5 → APPROVAL_REQUIRED → seller approves one exact action → immutable receipt</p>
-          <div class="hero-actions rise">
+          <p class="eyebrow">AutoShop · seller authority for agentic commerce</p>
+          <h1>The agent handles routine orders.<br>The seller keeps authority.</h1>
+          <p class="lede">AutoShop lets a seller give a browser agent a live numerical mandate. Orders inside it can proceed; exceptions stop for exact, visible human approval; every successful decision leaves a receipt. The tiny synthetic marketplace is the deterministic test harness that makes this seller boundary easy to inspect.</p>
+          <p class="scenario">6 units requested → mandate allows 5 → APPROVAL_REQUIRED → seller approves one exact action → immutable receipt</p>
+          <div class="hero-actions">
             <a class="btn" href="/seller">Open the seller control plane</a>
             <a class="btn btn-secondary" href="/buyer">Generate a buyer order</a>
             <a class="text-link" href="https://github.com/I-am-Mr-Rookie/autoshop-webmcp" target="_blank" rel="noopener noreferrer">Read the source on GitHub</a>
@@ -219,7 +236,7 @@
             <li>Synthetic only · no payments</li>
           </ul>
         </div>
-        <figure class="hero-art rise">
+        <figure class="hero-art">
           <img src="/img/hero-circuit.svg" width="560" height="440" alt="Schematic: seeded parts flow through a green agent node, then across an amber dashed boundary to a human approval switch that issues a receipt.">
           <figcaption><span>fig. 1 — the authority circuit</span><b>amber line = human decides</b></figcaption>
         </figure>
@@ -324,6 +341,46 @@
       </div>
     </section>
 
+    <section class="band" aria-labelledby="architecture-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div><p class="eyebrow">Architecture</p><h2 id="architecture-title">From browser agent to one database schema per account</h2></div>
+          <p class="hint">Four layers, one sign-in boundary, and a single decision lifecycle. Every claim here is read from the source on GitHub.</p>
+        </div>
+        <figure class="arch" aria-labelledby="architecture-title" aria-describedby="architecture-text">
+          <ol class="arch-stack" aria-label="System layers, from the browser down">
+            <li>
+              <span class="tier">Browser tab</span>
+              <h3>Page and WebMCP agent</h3>
+              <p><code>/buyer</code> registers 3 buyer tools: <code>browse_products</code>, <code>manage_cart</code>, <code>submit_order</code>. <code>/seller</code> registers 4 seller tools after the seller signs in: <code>get_mandate</code>, <code>list_orders</code>, <code>accept_order</code>, <code>commit_action</code>. Home, privacy, and terms register none, and tools are removed when you leave the page.</p>
+            </li>
+            <li class="boundary">
+              <span class="tier">Sign-in boundary</span>
+              <h3>A verified session on every API call</h3>
+              <p>Each <code>/api</code> request needs a verified account session or it is refused with 401. Writes must also come from the same origin.</p>
+            </li>
+            <li>
+              <span class="tier">Server · Railway</span>
+              <h3>Plain Node.js HTTP server</h3>
+              <p>No framework and no build step. Request bodies are capped at 64 KB; stock, totals, and mandate checks are computed on the server, never trusted from the page.</p>
+            </li>
+            <li>
+              <span class="tier">Data · Postgres</span>
+              <h3>One schema per account</h3>
+              <p>Your account ID maps to <code>shop_&lt;sha256 prefix&gt;</code>, created and seeded on your first request. Decisions run in transactions, so a failed stock update rolls back without a receipt.</p>
+            </li>
+          </ol>
+          <ol class="arch-flow" aria-label="Decision lifecycle">
+            <li><strong>Mandate</strong><p>The seller sets versioned limits: items, total, discount, and minimum remaining stock.</p></li>
+            <li class="human"><strong>Pending</strong><p>An <code>accept_order</code> inside the mandate commits directly. Outside it, the server returns <code>APPROVAL_REQUIRED</code> and parks one exact pending action.</p></li>
+            <li class="human"><strong>Approval</strong><p>A human reviews that action ID and ticks the visible confirmation. The agent cannot approve.</p></li>
+            <li><strong>Receipt</strong><p><code>commit_action</code> commits once under an idempotency key, changes stock, and issues an immutable receipt.</p></li>
+          </ol>
+          <figcaption id="architecture-text">In words: an agent in your browser tab can call only the tools the current page registers. Every tool call reaches the Node.js server on Railway through a verified sign-in session, and the server works inside a Postgres schema that belongs to your account alone. Orders inside the seller's mandate are committed; anything outside it waits as a pending action until a human approves it, and every commit leaves an immutable receipt.</figcaption>
+        </figure>
+      </div>
+    </section>
+
     <section class="band" aria-labelledby="catalogue-title">
       <div class="wrap">
         <div class="section-head">
@@ -332,19 +389,19 @@
         </div>
         <div class="parts">
           <article class="part">
-            <img src="/img/part-cpu.svg" width="200" height="140" alt="Technical drawing of a processor package">
+            <img src="/img/part-cpu.svg" width="200" height="140" alt="Technical drawing of a processor package" loading="lazy">
             <span class="stock">10 in stock</span>
             <h3>Ryzen 5 7600</h3>
             <p class="price">$189.00 <code>cpu-1</code></p>
           </article>
           <article class="part">
-            <img src="/img/part-ram.svg" width="200" height="140" alt="Technical drawing of a memory module">
+            <img src="/img/part-ram.svg" width="200" height="140" alt="Technical drawing of a memory module" loading="lazy">
             <span class="stock">12 in stock</span>
             <h3>16GB DDR5 Kit</h3>
             <p class="price">$49.00 <code>ram-1</code></p>
           </article>
           <article class="part">
-            <img src="/img/part-ssd.svg" width="200" height="140" alt="Technical drawing of an M.2 solid-state drive">
+            <img src="/img/part-ssd.svg" width="200" height="140" alt="Technical drawing of an M.2 solid-state drive" loading="lazy">
             <span class="stock">8 in stock</span>
             <h3>1TB NVMe SSD</h3>
             <p class="price">$69.00 <code>ssd-1</code></p>
@@ -369,7 +426,7 @@
           <a href="/buyer" class="buyer">
             <p class="eyebrow">Buyer portal · workload generator</p>
             <h3>Build a cart, choose the agent's scope, confirm once.</h3>
-            <p>No account needed. A private browser cookie scopes server-side demo state; the one-time confirmation token stays only in page memory.</p>
+            <p>Sign in first; every request is checked. A private browser cookie scopes server-side demo state; the one-time confirmation token stays only in page memory.</p>
             <span class="go">Generate an order</span>
           </a>
         </div>
