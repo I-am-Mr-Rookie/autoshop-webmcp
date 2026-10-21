@@ -78,7 +78,8 @@
   --alert-line: #f0b9b3;
   /* type */
   --serif: "AutoShop Symbols", "Source Serif 4", "Source Serif 4 Fallback", Georgia, serif;
-  --sans: "AutoShop Symbols", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* static "Segoe UI" leads: "Segoe UI Variable Text" added ~200 ms to Home's first-renderer layout at 4× CPU (Rebrand Run 11b/11c) */
+  --sans: "AutoShop Symbols", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: "AutoShop Symbols", "Source Code Pro", "Source Code Pro Fallback", Consolas, Menlo, monospace;
   --display-weight: 600;
   /* shape and motion */

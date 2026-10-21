@@ -45,6 +45,10 @@ test('type tokens use Source Serif 4 and Source Code Pro with metric-matched fal
   // Run 11a: an optional unicode-range "AutoShop Symbols" face may precede the text face (→ ↗ ● only).
   assert.match(css, /--mono:\s*(?:"AutoShop Symbols", )?"Source Code Pro", "Source Code Pro Fallback"/);
   assert.match(css, /--serif:\s*(?:"AutoShop Symbols", )?"Source Serif 4", "Source Serif 4 Fallback"/);
+  // Run 11c: body sans leads with static "Segoe UI"; the "Segoe UI Variable Text" system variable font
+  // added ~200 ms to Home's first-renderer Layout at 4× CPU (Run 11b bisect), so it stays out of the stack.
+  assert.match(css, /--sans: "AutoShop Symbols", "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;/);
+  assert.doesNotMatch(css.match(/--sans:[^;]*;/)[0], /Segoe UI Variable/);
   const faces = [...css.matchAll(/@font-face\s*\{([^}]*)\}/g)].map(([, body]) => body);
   for (const family of ['Source Serif 4', 'Source Code Pro']) {
     const web = faces.find(body => body.includes('font-family: "' + family + '";'));
