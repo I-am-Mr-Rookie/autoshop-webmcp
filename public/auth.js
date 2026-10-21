@@ -36,7 +36,7 @@ export const ensureGoogleSession = async () => {
       loadScript(`${base}/@clerk/clerk-js@6.39.1/dist/clerk.browser.js`, config.publishableKey)
     ]);
     clerk = window.Clerk;
-    await clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor }, signInUrl: '/sign-in', signUpUrl: '/sign-up' });
+    await clerk.load({ ui: { ClerkUI: window.__internal_ClerkUICtor }, signInUrl: '/sign-in', signUpUrl: '/sign-up', telemetry: false });
     if (location.pathname === '/sso-callback') {
       status.textContent = 'Completing Google sign-in…';
       await clerk.handleRedirectCallback({ signInUrl: '/sign-in', signUpUrl: '/sign-up', signInFallbackRedirectUrl: '/seller', signUpFallbackRedirectUrl: '/seller' });

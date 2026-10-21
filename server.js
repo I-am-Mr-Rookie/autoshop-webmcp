@@ -25,13 +25,26 @@ const modules = await Promise.all([
 ].map(name => import(`./functions/${name}.mjs`)));
 const routes = new Map(modules.map(module => [module.config.path, module]));
 
+// Returns the canonical origin to redirect to, or null when the request already uses it.
+// Location is always built from the configured origin, so a spoofed forwarded host cannot open-redirect.
+const canonicalRedirect = (req, canonicalOrigin) => {
+  if (!canonicalOrigin) return null;
+  const canonical = new URL(canonicalOrigin);
+  const first = value => String(value ?? '').split(',')[0].trim();
+  const requestedHost = first(req.headers['x-forwarded-host'] ?? req.headers.host);
+  let host = null;
+  try { host = new URL(`${canonical.protocol}//${requestedHost}`).host; } catch {}
+  const plainHttp = canonical.protocol === 'https:' && first(req.headers['x-forwarded-proto']) === 'http';
+  return host === canonical.host && !plainHttp ? null : canonical.origin;
+};
+
 export const createAppServer = (options = {}) => createServer(async (req, res) => {
   for (const [name, value] of Object.entries(securityHeaders)) res.setHeader(name, value);
   const clerk = clerkPublicConfig();
   if (clerk) {
     const fapi = `https://${clerk.domain}`;
     res.setHeader('Content-Security-Policy', securityHeaders['Content-Security-Policy']
-      .replace("connect-src 'self'", `connect-src 'self' ${fapi} https://clerk-telemetry.com https://*.clerk-telemetry.com https://*.protect.clerk.com`)
+      .replace("connect-src 'self'", `connect-src 'self' ${fapi} https://*.protect.clerk.com:*`)
       .replace("img-src 'self' data:", "img-src 'self' data: https://img.clerk.com https://*.googleusercontent.com")
       .replace("script-src 'self'", `script-src 'self' ${fapi} https://challenges.cloudflare.com https://*.protect.clerk.com`)
       + `; frame-src 'self' ${fapi} https://challenges.cloudflare.com https://*.protect.clerk.com; worker-src 'self' blob:`);
@@ -48,6 +61,14 @@ export const createAppServer = (options = {}) => createServer(async (req, res) =
     if (!req.url.startsWith('/') || req.url.startsWith('//')) return send(400, 'Invalid request URL.');
     const url = new URL(req.url, origin);
     if (url.origin !== new URL(origin).origin) return send(400, 'Invalid request origin.');
+    if (url.pathname !== '/healthz') {
+      const target = canonicalRedirect(req, options.canonicalOrigin ?? process.env.APP_ORIGIN);
+      if (target) {
+        // 308 keeps non-GET methods/bodies; a 1-hour cache keeps a cutover rollback recoverable.
+        res.writeHead(['GET', 'HEAD'].includes(req.method) ? 301 : 308, { Location: target + url.pathname + url.search, 'Cache-Control': 'max-age=3600' });
+        return res.end();
+      }
+    }
     if (url.pathname === '/healthz' && ['GET', 'HEAD'].includes(req.method)) {
       await (options.healthcheck ?? (() => getDatabase().pool.query('SELECT 1')))();
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -55,7 +76,7 @@ export const createAppServer = (options = {}) => createServer(async (req, res) =
     }
     if (url.pathname === '/api/config' && req.method === 'GET') {
       res.writeHead(clerk ? 200 : 503, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
-      return res.end(JSON.stringify(clerk ? { ok: true, ...clerk } : { ok: false, error: { code: 'UNAVAILABLE', message: 'Google sign-in is not configured.' } }));
+      return res.end(JSON.stringify(clerk ? { ok: true, ...clerk } : { ok: false, error: { code: 'UNAVAILABLE', message: 'Sign-in is not configured.' } }));
     }
     const route = (options.routes ?? routes).get(url.pathname);
     if (route) {
@@ -82,7 +103,7 @@ export const createAppServer = (options = {}) => createServer(async (req, res) =
       const identity = await (options.authenticate ?? authenticateGoogleSession)(request);
       if (!identity) {
         res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
-        return res.end(JSON.stringify({ ok: false, error: { code: 'FORBIDDEN', message: 'Continue with Google to open your isolated demo shop.' } }));
+        return res.end(JSON.stringify({ ok: false, error: { code: 'FORBIDDEN', message: 'Sign in to open your isolated demo shop.' } }));
       }
       const response = await withShop(identity, async () => {
         await (options.provisionShop ?? provisionShop)(currentShop().schema);
@@ -101,8 +122,9 @@ export const createAppServer = (options = {}) => createServer(async (req, res) =
     const path = decodeURIComponent(url.pathname);
     const file = path === '/' ? 'home.html' : ['/buyer', '/seller', '/sign-in', '/sign-up', '/sso-callback'].includes(path) ? 'index.html'
       : ['/privacy', '/terms'].includes(path) ? `${path.slice(1)}.html` : path.replace(/^\/+/, '');
-    const fullPath = resolve(root, file);
-    if (!fullPath.startsWith(root.endsWith(sep) ? root : root + sep) || path.includes('\0')) return send(404, 'File not found.');
+    const publicRoot = options.publicRoot ?? root;
+    const fullPath = resolve(publicRoot, file);
+    if (!fullPath.startsWith(publicRoot.endsWith(sep) ? publicRoot : publicRoot + sep) || path.includes('\0')) return send(404, 'File not found.');
     try {
       const body = await readFile(fullPath);
       res.writeHead(200, { 'Content-Type': types[extname(file)] ?? 'application/octet-stream' });

@@ -34,7 +34,7 @@ export const createHandler = (getRepository, options = {}) => async request => {
   const method = request.method.toUpperCase();
   if (!['GET', 'POST', 'DELETE'].includes(method)) return error('VALIDATION', 'Unsupported seller authentication request.', 400);
   // This context is established only by the HTTP adapter after verifying the Clerk session.
-  if (!currentShop()?.userId) return error('FORBIDDEN', 'Continue with Google to open your demo shop.', 401);
+  if (!currentShop()?.userId) return error('FORBIDDEN', 'Sign in to open your demo shop.', 401);
   if (method !== 'GET' && request.headers.get('origin') !== new URL(request.url).origin) return error('FORBIDDEN', 'Use the seller portal.', 403);
   try {
     const repository = await getRepository();
