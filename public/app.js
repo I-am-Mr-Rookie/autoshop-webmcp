@@ -279,6 +279,10 @@ export async function registerRoleTools(modelContext, pathname, onPageHide) {
   return () => controller.abort();
 }
 
+export function markCurrentNav(doc, pathname) {
+  if (pathname === '/buyer' || pathname === '/seller') doc.querySelector(`.portal-nav a[href="${pathname}"]`)?.setAttribute('aria-current', 'page');
+}
+
 let buyerAuthorization;
 let sellerAuthorization;
 
@@ -826,6 +830,8 @@ async function setupSellerAuthentication() {
   document.addEventListener('autoshop:seller-change', loadOrders);
 }
 
+if (typeof document !== 'undefined') markCurrentNav(document, location.pathname);
+
 if (typeof document !== 'undefined' && await ensureGoogleSession()) {
   addEventListener('pagehide', () => {
     buyerAuthorization = undefined;
@@ -836,7 +842,6 @@ if (typeof document !== 'undefined' && await ensureGoogleSession()) {
   else {
     document.querySelectorAll('[data-role-view]').forEach(view => { view.hidden = view.dataset.roleView !== role; });
     document.title = `AutoShop ${role}`;
-    document.querySelector(`.portal-nav a[href="/${role}"]`)?.setAttribute('aria-current', 'page');
     if (role === 'buyer') setupBuyerConfirmation();
     else setupSellerAuthentication();
 

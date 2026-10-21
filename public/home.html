@@ -48,9 +48,12 @@
     .brand strong { font: 400 1.35rem/1 var(--serif); }
     .brand span { color: var(--muted); font: 500 .7rem/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
     .portal-nav { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); }
-    .portal-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 2px; color: var(--ink-2); font-size: .875rem; font-weight: 600; text-decoration: none; transition: background var(--fast) ease-out, color var(--fast) ease-out; }
+    .portal-nav a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 2px; color: var(--ink-2); font: 600 .74rem/1 var(--mono); letter-spacing: .06em; text-transform: uppercase; text-decoration: none; transition: background var(--fast) ease-out, color var(--fast) ease-out; }
     .portal-nav a:hover { background: var(--surface); color: var(--ink); }
+    .portal-nav a[aria-current="page"] { background: var(--ink); color: #fff; }
     .portal-nav a.github { color: var(--muted); }
+    .portal-nav a.github::after { content: "↗" / ""; margin-left: 4px; }
+    .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
     /* buttons */
     .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 10px 22px; border: 1px solid var(--agent); border-radius: var(--radius); background: var(--agent); color: #fff; font: 700 .95rem/1.2 var(--sans); text-decoration: none; transition: background var(--fast) ease-out, border-color var(--fast) ease-out, color var(--fast) ease-out, transform var(--fast) ease-out; }
@@ -102,6 +105,26 @@
     .steps small { color: var(--muted); font-size: .8rem; line-height: 1.4; }
     .steps b { justify-self: start; margin-top: 2px; padding: 3px 7px; border: 1px solid var(--agent-line); border-radius: 2px; color: var(--agent-ink); background: var(--agent-tint); font: 600 .62rem/1 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
     .steps li:last-child b { border-color: var(--human-line); color: var(--human-ink); background: var(--human-tint); }
+
+    /* architecture: hairline stack + lifecycle */
+    .arch { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; margin: 0; }
+    .arch ol { margin: 0; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+    .arch code { font: 500 .84em var(--mono); color: var(--agent-ink); }
+    .arch-stack li { display: grid; grid-template-columns: 9rem minmax(0, 1fr); gap: 6px 20px; padding: 18px 22px; border-top: 1px solid var(--line); }
+    .arch-stack li:first-child { border-top: 0; }
+    .arch-stack li.boundary { border-top: 1px dashed var(--human); border-bottom: 1px dashed var(--human); background: var(--human-tint); }
+    .arch-stack li.boundary + li { border-top: 0; }
+    .arch .tier { grid-row: span 2; color: var(--muted); font: 600 .68rem/1.6 var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+    .arch-stack li.boundary .tier, .arch-stack li.boundary code { color: var(--human-ink); }
+    .arch h3 { font: 700 1rem/1.3 var(--sans); }
+    .arch li p { color: var(--ink-2); font-size: .9rem; line-height: 1.55; }
+    .arch-flow { counter-reset: step; }
+    .arch-flow li { position: relative; padding: 16px 22px 16px 58px; border-top: 1px solid var(--line); counter-increment: step; }
+    .arch-flow li:first-child { border-top: 0; }
+    .arch-flow li::before { content: counter(step, decimal-leading-zero); position: absolute; top: 15px; left: 20px; color: var(--agent-ink); font: 600 .72rem/1.6 var(--mono); }
+    .arch-flow li.human::before, .arch-flow li.human strong { color: var(--human-ink); }
+    .arch-flow strong { display: block; margin-bottom: 2px; font: 700 .95rem/1.3 var(--sans); }
+    .arch figcaption { grid-column: 1 / -1; max-width: 88ch; color: var(--muted); font-size: .9rem; line-height: 1.6; }
 
     /* features */
     .features { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
@@ -166,14 +189,16 @@
     @media (max-width: 900px) {
       .hero .grid { align-items: start; }
       .hero-copy, .hero-art { grid-column: 1 / -1; }
-      .section-head, .circuits, .contracts, .pick { grid-template-columns: 1fr; }
+      .section-head, .circuits, .contracts, .pick, .arch { grid-template-columns: 1fr; }
       .contracts > div + div { border-left: 0; border-top: 1px solid #ffffff1f; }
       .parts { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     }
     @media (max-width: 640px) {
       .topbar .wrap { flex-wrap: wrap; row-gap: 8px; padding-block: 6px; }
       .brand span { display: none; }
-      .portal-nav a { padding: 0 12px; }
+      .portal-nav a { padding: 0 10px; }
+      .arch-stack li { grid-template-columns: 1fr; }
+      .arch .tier { grid-row: auto; }
       .features, .parts { grid-template-columns: 1fr; }
       .steps { grid-template-columns: 1fr; gap: 18px; }
       .steps li { padding-right: 0; }
@@ -187,13 +212,14 @@
   </style>
 </head>
 <body>
-  <nav class="topbar" aria-label="Site navigation">
+  <nav class="topbar" aria-label="Site">
     <div class="wrap">
-      <a class="brand" href="/" aria-current="page"><strong>AutoShop</strong><span>Synthetic parts · bounded authority</span></a>
+      <a class="brand" href="/"><strong>AutoShop</strong><span>Synthetic parts · bounded authority</span></a>
       <div class="portal-nav">
+        <a href="/" aria-current="page">Home</a>
         <a href="/seller">Seller</a>
         <a href="/buyer">Buyer</a>
-        <a class="github" href="https://github.com/I-am-Mr-Rookie/autoshop-webmcp" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a class="github" href="https://github.com/I-am-Mr-Rookie/autoshop-webmcp" target="_blank" rel="noopener noreferrer">GitHub<span class="sr-only"> (opens in a new tab)</span></a>
       </div>
     </div>
   </nav>
@@ -321,6 +347,46 @@
             <p class="note">Removed on logout, session expiry, or leaving the page.</p>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section class="band" aria-labelledby="architecture-title">
+      <div class="wrap">
+        <div class="section-head">
+          <div><p class="eyebrow">Architecture</p><h2 id="architecture-title">From browser agent to one database schema per account</h2></div>
+          <p class="hint">Four layers, one sign-in boundary, and a single decision lifecycle. Every claim here is read from the source on GitHub.</p>
+        </div>
+        <figure class="arch" aria-labelledby="architecture-title" aria-describedby="architecture-text">
+          <ol class="arch-stack" aria-label="System layers, from the browser down">
+            <li>
+              <span class="tier">Browser tab</span>
+              <h3>Page and WebMCP agent</h3>
+              <p><code>/buyer</code> registers 3 buyer tools: <code>browse_products</code>, <code>manage_cart</code>, <code>submit_order</code>. <code>/seller</code> registers 4 seller tools after the seller signs in: <code>get_mandate</code>, <code>list_orders</code>, <code>accept_order</code>, <code>commit_action</code>. Home, privacy, and terms register none, and tools are removed when you leave the page.</p>
+            </li>
+            <li class="boundary">
+              <span class="tier">Sign-in boundary</span>
+              <h3>A verified session on every API call</h3>
+              <p>Each <code>/api</code> request needs a verified account session or it is refused with 401. Writes must also come from the same origin.</p>
+            </li>
+            <li>
+              <span class="tier">Server · Railway</span>
+              <h3>Plain Node.js HTTP server</h3>
+              <p>No framework and no build step. Request bodies are capped at 64 KB; stock, totals, and mandate checks are computed on the server, never trusted from the page.</p>
+            </li>
+            <li>
+              <span class="tier">Data · Postgres</span>
+              <h3>One schema per account</h3>
+              <p>Your account ID maps to <code>shop_&lt;sha256 prefix&gt;</code>, created and seeded on your first request. Decisions run in transactions, so a failed stock update rolls back without a receipt.</p>
+            </li>
+          </ol>
+          <ol class="arch-flow" aria-label="Decision lifecycle">
+            <li><strong>Mandate</strong><p>The seller sets versioned limits: items, total, discount, and minimum remaining stock.</p></li>
+            <li class="human"><strong>Pending</strong><p>An <code>accept_order</code> inside the mandate commits directly. Outside it, the server returns <code>APPROVAL_REQUIRED</code> and parks one exact pending action.</p></li>
+            <li class="human"><strong>Approval</strong><p>A human reviews that action ID and ticks the visible confirmation. The agent cannot approve.</p></li>
+            <li><strong>Receipt</strong><p><code>commit_action</code> commits once under an idempotency key, changes stock, and issues an immutable receipt.</p></li>
+          </ol>
+          <figcaption id="architecture-text">In words: an agent in your browser tab can call only the tools the current page registers. Every tool call reaches the Node.js server on Railway through a verified sign-in session, and the server works inside a Postgres schema that belongs to your account alone. Orders inside the seller's mandate are committed; anything outside it waits as a pending action until a human approves it, and every commit leaves an immutable receipt.</figcaption>
+        </figure>
       </div>
     </section>
 

@@ -99,7 +99,8 @@ export const createAppServer = (options = {}) => createServer(async (req, res) =
     if (url.pathname.startsWith('/api/')) return send(404, 'API route not found.');
     if (!['GET', 'HEAD'].includes(req.method)) return send(405, 'Unsupported request method.');
     const path = decodeURIComponent(url.pathname);
-    const file = path === '/' ? 'home.html' : ['/buyer', '/seller', '/sign-in', '/sign-up', '/sso-callback'].includes(path) ? 'index.html' : path.replace(/^\/+/, '');
+    const file = path === '/' ? 'home.html' : ['/buyer', '/seller', '/sign-in', '/sign-up', '/sso-callback'].includes(path) ? 'index.html'
+      : ['/privacy', '/terms'].includes(path) ? `${path.slice(1)}.html` : path.replace(/^\/+/, '');
     const fullPath = resolve(root, file);
     if (!fullPath.startsWith(root.endsWith(sep) ? root : root + sep) || path.includes('\0')) return send(404, 'File not found.');
     try {
