@@ -117,3 +117,14 @@ test('re-evaluates quantity six without mutating stock or silently accepting it'
   assert.match(mandateUpdate, /state = 'replaced'/);
   assert.match(mandateUpdate, /const state = permitted \? 'eligible' : 'pending'/);
 });
+
+test('seller mandate form reads its values before disabling the fieldset', async () => {
+  // Disabled controls are left out of FormData, which sent NaN limits and a 400 (Rebrand Run 12).
+  const appSource = await readFile(new URL('../public/app.js', import.meta.url), 'utf8');
+  const start = appSource.indexOf("mandateForm.addEventListener('submit'");
+  const handler = appSource.slice(start, appSource.indexOf("approvalForm.addEventListener('submit'", start));
+  const read = handler.indexOf('new FormData(mandateForm)');
+  const disable = handler.indexOf('mandateFields.disabled = true');
+  assert.ok(start > 0 && read > 0 && disable > 0, 'mandate submit handler found');
+  assert.ok(read < disable, 'FormData is captured before the fieldset is disabled');
+});

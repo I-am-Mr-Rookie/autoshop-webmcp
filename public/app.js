@@ -690,11 +690,11 @@ async function setupSellerAuthentication() {
   mandateForm.addEventListener('submit', async event => {
     event.preventDefault();
     if (!mandateForm.reportValidity()) return;
+    const values = Object.fromEntries(new FormData(mandateForm));
     mandateFields.disabled = true;
     mandateForm.setAttribute('aria-busy', 'true');
     mandateStatus.textContent = 'Saving mandate…';
     try {
-      const values = Object.fromEntries(new FormData(mandateForm));
       const response = await fetch('/api/seller/mandate', {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
