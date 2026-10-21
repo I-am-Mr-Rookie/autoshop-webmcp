@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f2f5f3">
   <meta name="description" content="AutoShop is a seller-controlled authority layer for agentic commerce: routine orders proceed inside a live mandate, while exceptions require exact human approval.">
   <title>AutoShop — seller-controlled agentic commerce</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%2313241f'/%3E%3Cpath d='M16 46 28 18h8l12 28h-8l-2-6H26l-2 6zm13-13h6l-3-9z' fill='%236ee7b7'/%3E%3C/svg%3E">
@@ -200,6 +201,7 @@
   </style>
 </head>
 <body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
   <nav class="topbar" aria-label="Site">
     <div class="wrap">
       <a class="brand" href="/"><strong>AutoShop</strong><span>Synthetic parts · bounded authority</span></a>
@@ -212,8 +214,9 @@
     </div>
   </nav>
 
-  <main>
+  <main id="main-content" tabindex="-1">
     <header class="hero">
+      <button id="motion-toggle" class="motion-toggle" type="button" aria-pressed="false" hidden>Pause motion</button>
       <div class="wrap grid">
         <div class="hero-copy">
           <p class="eyebrow">AutoShop · seller authority for agentic commerce</p>
@@ -386,19 +389,19 @@
         </div>
         <div class="parts">
           <article class="part">
-            <img src="/img/part-cpu.svg" width="200" height="140" alt="Technical drawing of a processor package">
+            <img src="/img/part-cpu.svg" width="200" height="140" alt="Technical drawing of a processor package" loading="lazy">
             <span class="stock">10 in stock</span>
             <h3>Ryzen 5 7600</h3>
             <p class="price">$189.00 <code>cpu-1</code></p>
           </article>
           <article class="part">
-            <img src="/img/part-ram.svg" width="200" height="140" alt="Technical drawing of a memory module">
+            <img src="/img/part-ram.svg" width="200" height="140" alt="Technical drawing of a memory module" loading="lazy">
             <span class="stock">12 in stock</span>
             <h3>16GB DDR5 Kit</h3>
             <p class="price">$49.00 <code>ram-1</code></p>
           </article>
           <article class="part">
-            <img src="/img/part-ssd.svg" width="200" height="140" alt="Technical drawing of an M.2 solid-state drive">
+            <img src="/img/part-ssd.svg" width="200" height="140" alt="Technical drawing of an M.2 solid-state drive" loading="lazy">
             <span class="stock">8 in stock</span>
             <h3>1TB NVMe SSD</h3>
             <p class="price">$69.00 <code>ssd-1</code></p>

@@ -53,6 +53,7 @@ export function packetFrames(stops) {
 }
 
 const loops = new Set();
+let paused = false;
 const ambientState = { visible: false };
 
 function headline(hero) {
@@ -178,12 +179,13 @@ function packet() {
 function sync() {
   const hidden = document.visibilityState === 'hidden';
   for (const { anim, gate } of loops) {
-    if (!hidden && gate.visible) { if (anim.playState !== 'running') anim.play(); }
+    if (!paused && !hidden && gate.visible) { if (anim.playState !== 'running') anim.play(); }
     else if (anim.playState === 'running') anim.pause();
   }
 }
 
 function stop() {
+  document.querySelector('#motion-toggle').hidden = true;
   document.documentElement.classList.remove('motion');
   for (const a of document.getAnimations()) a.cancel();
   loops.clear();
@@ -197,8 +199,15 @@ if (typeof document !== 'undefined' && typeof matchMedia === 'function') {
     hero();
     scrollRise();
     packet();
+    const toggle = document.querySelector('#motion-toggle');
+    toggle.hidden = false;
+    toggle.addEventListener('click', () => {
+      paused = !paused;
+      toggle.setAttribute('aria-pressed', String(paused));
+      toggle.textContent = paused ? 'Resume motion' : 'Pause motion';
+      sync();
+    });
     document.addEventListener('visibilitychange', sync);
     reduce.addEventListener('change', e => e.matches && stop(), { once: true });
   }
 }
-

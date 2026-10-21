@@ -119,6 +119,9 @@ body {
 .portal-nav a.github { color: var(--muted); }
 .portal-nav a.github::after { content: "↗" / ""; margin-left: 4px; }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.skip-link { position: fixed; top: 8px; left: 8px; z-index: 100; padding: 12px; background: var(--surface); color: var(--ink); transform: translateY(-200%); }
+.skip-link:focus { transform: none; }
+.motion-toggle { position: absolute; top: 8px; right: 16px; z-index: 2; padding: 6px 10px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--muted); font: 12px var(--mono); cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { .topbar { backdrop-filter: none; } .portal-nav a { transition: none; } }
 @media (max-width: 640px) {
   .topbar .wrap { flex-wrap: wrap; row-gap: 8px; padding-block: 6px; }

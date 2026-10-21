@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f2f5f3">
   <title>AutoShop</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%2313241f'/%3E%3Cpath d='M16 46 28 18h8l12 28h-8l-2-6H26l-2 6zm13-13h6l-3-9z' fill='%236ee7b7'/%3E%3C/svg%3E">
   <link rel="preload" href="/fonts/source-serif-4-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
@@ -331,6 +332,7 @@
   </style>
 </head>
 <body class="auth-pending">
+  <a class="skip-link" href="#main-content">Skip to content</a>
   <nav class="topbar" aria-label="Site">
     <div class="wrap">
       <a class="brand" href="/"><strong>AutoShop</strong><span>Synthetic parts · bounded authority</span></a>
@@ -343,6 +345,7 @@
     </div>
   </nav>
 
+  <div id="main-content" tabindex="-1">
   <section id="auth-gate" class="wrap" style="padding-block:64px;max-width:640px" aria-labelledby="auth-title">
     <p class="eyebrow">Your own demo shop</p>
     <h1 id="auth-title">Sign in to AutoShop</h1>
@@ -422,10 +425,10 @@
                 <fieldset id="seller-mandate-fields" disabled>
                   <legend>Edit mandate limits</legend>
                   <div class="mandate-grid">
-                    <label class="field">Items per order<input name="max_items_per_order" type="number" min="1" max="20" step="1" required></label>
-                    <label class="field">Order total (USD)<input name="max_total_dollars" type="number" min="0" max="1000" step="0.01" required></label>
-                    <label class="field">Discount percent<input name="max_discount_percent" type="number" min="0" max="100" step="1" required></label>
-                    <label class="field">Stock remaining<input name="min_stock_remaining" type="number" min="0" max="100" step="1" required></label>
+                    <label class="field">Items per order<input name="max_items_per_order" autocomplete="off" type="number" min="1" max="20" step="1" required></label>
+                    <label class="field">Order total (USD)<input name="max_total_dollars" autocomplete="off" type="number" min="0" max="1000" step="0.01" required></label>
+                    <label class="field">Discount percent<input name="max_discount_percent" autocomplete="off" type="number" min="0" max="100" step="1" required></label>
+                    <label class="field">Stock remaining<input name="min_stock_remaining" autocomplete="off" type="number" min="0" max="100" step="1" required></label>
                   </div>
                   <p class="mandate-version"><span>Current version</span><output id="mandate-version">—</output></p>
                   <button type="submit">Save mandate</button>
@@ -436,7 +439,7 @@
                 <fieldset id="seller-approval-fields" disabled>
                   <legend>Exceptional action approval</legend>
                   <p class="approval-warning">This authorizes one pending action outside the current mandate. A successful commit changes synthetic stock and creates an immutable receipt.</p>
-                  <label class="field">Pending action ID<input name="action_id" type="text" maxlength="64" pattern="[A-Za-z0-9_-]+" required></label>
+                  <label class="field">Pending action ID<input name="action_id" autocomplete="off" type="text" maxlength="64" pattern="[A-Za-z0-9_-]+" required></label>
                   <label class="approval-confirm"><input name="confirm" type="checkbox" value="APPROVE" required><span>I reviewed this action and approve this one exceptional commit.</span></label>
                   <button type="submit">Approve this exceptional action</button>
                   <output class="confirmation-status" id="seller-approval-status" aria-live="polite" aria-atomic="true">No exceptional action approved.</output>
@@ -485,7 +488,7 @@
           <div class="panel-head"><div><h2 id="catalogue-title">Build the cart</h2><p class="hint">Search the seeded catalogue. Stock and totals stay server-authoritative.</p></div></div>
           <div class="panel-body">
             <form class="compact-form" id="product-search" role="search">
-              <label class="field">Find a computer part<input name="query" type="search" maxlength="80" placeholder="RAM, SSD, Ryzen…"></label>
+              <label class="field">Find a computer part<input name="query" autocomplete="off" type="search" maxlength="80" placeholder="RAM, SSD, Ryzen…"></label>
               <button type="submit">Search</button>
             </form>
             <div class="product-grid" id="buyer-products" aria-live="polite"><p>Loading catalogue…</p></div>
@@ -526,6 +529,7 @@
       <div class="wrap"><div class="reset-strip"><span>Buyer tools: 3 role-scoped contracts · seller tools: unavailable · reset: seller controlled</span></div></div>
     </section>
   </main>
+  </div>
   <script type="module" src="/app.js"></script>
 </body>
 </html>

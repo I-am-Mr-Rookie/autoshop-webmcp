@@ -57,4 +57,3 @@ test('every page that preloads the latin faces also preloads the symbols face', 
     assert.ok(html.indexOf(symbolsPreload) < html.indexOf('<link rel="stylesheet"'), name + ' preloads before the stylesheet');
   }
 });
-

@@ -77,4 +77,3 @@ test('home buyer copy reflects that sign-in is required', async () => {
   assert.doesNotMatch(home, /No account needed/i);
   assert.doesNotMatch(home, /Clerk/);
 });
-

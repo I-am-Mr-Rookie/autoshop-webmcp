@@ -169,7 +169,7 @@ export const BUYER_TOOLS = Object.freeze([
         confirm_token: buyerAuthorization.confirm_token
       });
       buyerAuthorization = undefined;
-      if (typeof document.dispatchEvent === 'function') document.dispatchEvent(new Event('autoshop:order-change'));
+      if (typeof document.dispatchEvent === 'function') document.dispatchEvent(new CustomEvent('autoshop:order-change', { detail: result.order }));
       return result;
     }))
 ]);
@@ -507,14 +507,12 @@ async function setupBuyerConfirmation() {
   });
 
   document.addEventListener('autoshop:buyer-change', () => { clearAuthorization(); load(); });
-  document.addEventListener('autoshop:order-change', () => {
+  document.addEventListener('autoshop:order-change', event => {
     // submit_order consumed the authorization and emptied the server cart.
     clearAuthorization();
     confirmationStatus.textContent = 'Authorization consumed. The seller can now review this order.';
+    renderOrder(event.detail);
     load();
-    readBuyerOrder(fetch)
-      .then(result => { renderOrder(result.order); })
-      .catch(error => { orderStatus.textContent = error.message; });
   });
 }
 
