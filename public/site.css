@@ -19,7 +19,7 @@
 }
 /* → ↗ ● sit outside the latin subsets; without this 1.4 KB Source Code Pro subset (same OFL licence) the first layout
    pays a system font fallback lookup (Rebrand Run 11a). Listed first in every stack; unicode-range keeps it to these glyphs.
-   Deliberately not preloaded: measured, a preload re-adds a long task. */
+   Preloaded on every page beside the latin faces so it is ready at the first layout (Rebrand Run 11f). */
 @font-face {
   font-family: "AutoShop Symbols";
   font-style: normal;

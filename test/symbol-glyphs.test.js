@@ -42,8 +42,19 @@ test('every non-ASCII glyph Home and the shared stylesheet render is in a self-h
   }
 });
 
-test('Home does not preload the symbols face (measured: preload re-adds a long task)', async () => {
-  const html = await read('home.html');
-  assert.doesNotMatch(html, /rel="preload"[^>]*symbols/);
+// Rebrand Run 11f: unpreloaded, the symbols face is still pending at the first layout, so
+// → ↗ ● walk every fallback stack (one system typeface per size/weight, Segoe UI Symbol via
+// character fallback) and its later arrival relayouts all text. Preloaded beside the latin
+// faces it is ready at the first layout on every page that renders the shared nav.
+const symbolsPreload = '<link rel="preload" href="/fonts/source-code-pro-symbols-wght-normal.woff2" as="font" type="font/woff2" crossorigin>';
+
+test('every page that preloads the latin faces also preloads the symbols face', async () => {
+  for (const name of ['home.html', 'index.html', 'privacy.html', 'terms.html']) {
+    const html = await read(name);
+    assert.match(html, /rel="preload" href="\/fonts\/source-code-pro-latin-wght-normal\.woff2"/, name + ' preloads the latin mono face');
+    assert.ok(html.includes(symbolsPreload), name + ' preloads the symbols face as a CORS font');
+    assert.equal(html.match(/rel="preload"[^>]*symbols/g).length, 1, name + ' preloads the symbols face once');
+    assert.ok(html.indexOf(symbolsPreload) < html.indexOf('<link rel="stylesheet"'), name + ' preloads before the stylesheet');
+  }
 });
 
