@@ -1,0 +1,8 @@
+# Interim Netlify host (Railway builds paused, 2026-10-22). Railway config is unchanged.
+[build]
+  publish = "public"
+  # No build step. Run `npm test` before deploying: context env (e.g. APP_ORIGIN) would leak into tests here.
+
+[functions]
+  directory = "netlify/functions"
+  included_files = ["public/**", "functions/**", "migrations/**"]

@@ -6,8 +6,9 @@ import { getDatabase } from './database.mjs';
 import { authenticateGoogleSession, clerkPublicConfig } from './clerk-auth.mjs';
 import { withShop, currentShop } from './shop-context.mjs';
 import { provisionShop } from './shop-provision.mjs';
+import { appRoot } from './app-root.mjs';
 
-const root = fileURLToPath(new URL('./public/', import.meta.url));
+const root = fileURLToPath(new URL('./public/', appRoot));
 const types = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml; charset=utf-8', '.woff2': 'font/woff2' };
 
 export const securityHeaders = {
@@ -134,7 +135,8 @@ export const createAppServer = (options = {}) => createServer(async (req, res) =
       throw error;
     }
   } catch (error) {
-    console.error('HTTP request failed');
+    // Name and code only (e.g. MissingDatabaseConnectionError, ECONNREFUSED, 28P01): never messages, which can carry connection details.
+    console.error('HTTP request failed', error?.name ?? 'Error', error?.code ?? '');
     if (!res.headersSent) send(error instanceof URIError || error instanceof TypeError ? 400 : 503, 'Request could not be completed.');
     else res.destroy();
   }

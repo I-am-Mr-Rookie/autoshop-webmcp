@@ -1,11 +1,18 @@
 import pg from 'pg';
+import { getDatabase as getNetlifyDatabase } from '@netlify/database';
 import { currentShop } from './shop-context.mjs';
 
 let database;
 export const getBaseDatabase = () => {
   if (!database) {
-    if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required.');
-    const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 10, connectionTimeoutMillis: 10000, idleTimeoutMillis: 30000 });
+    let pool;
+    if (process.env.DATABASE_URL) {
+      pool = new pg.Pool({ connectionString: process.env.DATABASE_URL, max: 10, connectionTimeoutMillis: 10000, idleTimeoutMillis: 30000 });
+    } else {
+      // Netlify Database exposes NETLIFY_DB_URL via Netlify.env (process.env locally); its pool is pg-compatible.
+      try { pool = getNetlifyDatabase().pool; }
+      catch { throw new Error('DATABASE_URL is required.'); }
+    }
     pool.on('error', () => console.error('database connection failed'));
     database = { pool };
   }

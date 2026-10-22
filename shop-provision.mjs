@@ -1,10 +1,14 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { getBaseDatabase } from './database.mjs';
 import { createSeedRecords } from './persistence.js';
+import { appRoot } from './app-root.mjs';
 
-const directory = new URL('./migrations/', import.meta.url);
-const migrations = readdir(directory).then(async names => Promise.all(names.filter(name => /^\d+_/.test(name)).sort()
-  .map(async name => [name, await readFile(new URL(`${name}/migration.sql`, directory), 'utf8')])));
+const directory = new URL('./migrations/', appRoot);
+// Loaded on first provisioning, not at import: a missing directory must fail that request, not crash the process.
+let migrations;
+const loadMigrations = () => migrations ??= readdir(directory).then(async names => Promise.all(names.filter(name => /^\d+_/.test(name)).sort()
+  .map(async name => [name, await readFile(new URL(`${name}/migration.sql`, directory), 'utf8')])))
+  .catch(error => { migrations = undefined; throw error; });
 const ready = new Set();
 
 export const provisionShop = async (schema, db) => {
@@ -19,7 +23,7 @@ export const provisionShop = async (schema, db) => {
     await client.query(`CREATE SCHEMA IF NOT EXISTS "${schema}"`);
     await client.query('SELECT set_config(\'search_path\', $1, true)', [schema]);
     await client.query('CREATE TABLE IF NOT EXISTS autoshop_migrations (name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');
-    for (const [name, sql] of await migrations) {
+    for (const [name, sql] of await loadMigrations()) {
       const applied = await client.query('SELECT 1 FROM autoshop_migrations WHERE name = $1', [name]);
       if (applied.rowCount) continue;
       await client.query(sql);
